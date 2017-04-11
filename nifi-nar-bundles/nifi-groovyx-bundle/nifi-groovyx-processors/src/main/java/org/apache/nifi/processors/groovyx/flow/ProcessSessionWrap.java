@@ -47,8 +47,6 @@ import org.apache.nifi.processors.groovyx.util.Throwables;
  * wrapped session that collects all created/modified files if created with special flag
  * and able to execute method revertToFailure(Relationship r, Throwable t)
  */
-//CHECKSTYLE:OFF
-@SuppressWarnings("PMD")
 public class ProcessSessionWrap implements ProcessSession {
 
     public static final String ERROR_STACKTRACE = "ERROR_STACKTRACE";
@@ -94,7 +92,7 @@ public class ProcessSessionWrap implements ProcessSession {
             return null;
         }
         for (int i = 0; i < ff.size(); i++) {
-            ff.set(i, wrap((FlowFile)ff.get(i)));
+            ff.set(i, wrap((FlowFile) ff.get(i)));
         }
         return ff;
     }
@@ -120,9 +118,9 @@ public class ProcessSessionWrap implements ProcessSession {
         return ff;
     }
 
-    private void assertNotSessionFile(FlowFile f){
-    	if(f instanceof SessionFile) {
-            throw new RuntimeException("SessionFile not accepted at this point. "+this.getClass()+" developer failure.");
+    private void assertNotSessionFile(FlowFile f) {
+        if (f instanceof SessionFile) {
+            throw new RuntimeException("SessionFile not accepted at this point. " + this.getClass() + " developer failure.");
         }
     }
 
@@ -130,7 +128,7 @@ public class ProcessSessionWrap implements ProcessSession {
      * called when file created or modified
      */
     private FlowFile onMod(FlowFile f) {
-    	assertNotSessionFile(f);
+        assertNotSessionFile(f);
         if (foe) {
             toDrop.put(f.getAttribute("uuid"), f);
         }
@@ -141,7 +139,7 @@ public class ProcessSessionWrap implements ProcessSession {
      * called when got file from incoming queue
      */
     private FlowFile onGet(FlowFile f) {
-    	assertNotSessionFile(f);
+        assertNotSessionFile(f);
         if (f == null) {
             return null;
         }
@@ -168,7 +166,7 @@ public class ProcessSessionWrap implements ProcessSession {
      * called when the file removed
      */
     private void onDrop(FlowFile f) {
-    	assertNotSessionFile(f);
+        assertNotSessionFile(f);
         if (foe) {
             toDrop.remove(f.getAttribute("uuid"));
         }
@@ -220,18 +218,12 @@ public class ProcessSessionWrap implements ProcessSession {
      * As soon as the commit completes the session is again ready to be used
      * </p>
      *
-     * @throws IllegalStateException if detected that this method is being
-     *             called from within a callback of another method in this session.
-     * @throws FlowFileHandlingException if not all FlowFiles acted upon within
-     *             this session are accounted for by user code such that they have a
-     *             transfer identified or where marked for removal. Automated rollback
-     *             occurs.
-     * @throws ProcessException if some general fault occurs while persisting
-     *             the session. Initiates automatic rollback. The root cause can be obtained
-     *             via <code>Exception.getCause()</code>
+     * @throws IllegalStateException if detected that this method is being called from within a callback of another method in this session.
+     * @throws FlowFileHandlingException if not all FlowFiles acted upon within this session are accounted for by user code such that they have a transfer identified or where marked for removal.
+     * Automated rollback occurs.
+     * @throws ProcessException if some general fault occurs while persisting the session. Initiates automatic rollback. The root cause can be obtained via <code>Exception.getCause()</code>
      */
-    @Override
-    public void commit() {
+    @Override public void commit() {
         for (FlowFile f : toFail) {
             s.remove(f);
         }
@@ -247,8 +239,7 @@ public class ProcessSessionWrap implements ProcessSession {
      * is identical to calling {@link #rollback(boolean)} passing
      * <code>false</code> as the parameter.
      */
-    @Override
-    public void rollback() {
+    @Override public void rollback() {
         s.rollback();
         onClear();
     }
@@ -260,11 +251,9 @@ public class ProcessSessionWrap implements ProcessSession {
      * rolled back then no changes will occur. This method can be called any
      * number of times.
      *
-     * @param penalize whether or not the FlowFiles that are being restored back
-     *            to their queues should be penalized
+     * @param penalize whether or not the FlowFiles that are being restored back to their queues should be penalized
      */
-    @Override
-    public void rollback(boolean penalize) {
+    @Override public void rollback(boolean penalize) {
         s.rollback(penalize);
         onClear();
     }
@@ -276,22 +265,17 @@ public class ProcessSessionWrap implements ProcessSession {
      *
      * @param name the name of the counter
      * @param delta the delta by which to modify the counter (+ or -)
-     * @param immediate if true, the counter will be updated immediately,
-     *            without regard to whether the ProcessSession is commit or rolled back;
-     *            otherwise, the counter will be incremented only if and when the
-     *            ProcessSession is committed.
+     * @param immediate if true, the counter will be updated immediately, without regard to whether the ProcessSession is commit or rolled back; otherwise, the counter will be incremented only if and
+     * when the ProcessSession is committed.
      */
-    @Override
-    public void adjustCounter(String name, long delta, boolean immediate) {
+    @Override public void adjustCounter(String name, long delta, boolean immediate) {
         s.adjustCounter(name, delta, immediate);
     }
 
     /**
-     * @return FlowFile that is next highest priority FlowFile to process.
-     *         Otherwise returns null.
+     * @return FlowFile that is next highest priority FlowFile to process. Otherwise returns null.
      */
-    @Override
-    public SessionFile get() {
+    @Override public SessionFile get() {
         return wrap(onGet(s.get()));
     }
 
@@ -303,13 +287,10 @@ public class ProcessSessionWrap implements ProcessSession {
      * single call.
      *
      * @param maxResults the maximum number of FlowFiles to return
-     * @return up to <code>maxResults</code> FlowFiles from the work queue. If
-     *         no FlowFiles are available, returns an empty list. Will not return null.
-     * @throws IllegalArgumentException if <code>maxResults</code> is less than
-     *             0
+     * @return up to <code>maxResults</code> FlowFiles from the work queue. If no FlowFiles are available, returns an empty list. Will not return null.
+     * @throws IllegalArgumentException if <code>maxResults</code> is less than 0
      */
-    @Override
-    public List<FlowFile> get(int maxResults) {
+    @Override public List<FlowFile> get(int maxResults) {
         return wrap(onGet(s.get(maxResults)));
     }
 
@@ -324,22 +305,17 @@ public class ProcessSessionWrap implements ProcessSession {
      * </p>
      *
      * @param filter to limit which flow files are returned
-     * @return all FlowFiles from all of the incoming queues for which the given
-     *         {@link FlowFileFilter} indicates should be accepted.
+     * @return all FlowFiles from all of the incoming queues for which the given {@link FlowFileFilter} indicates should be accepted.
      */
-    @Override
-    public List<FlowFile> get(FlowFileFilter filter) {
+    @Override public List<FlowFile> get(FlowFileFilter filter) {
         return wrap(onGet(s.get(filter)));
     }
 
     /**
-     * @return the QueueSize that represents the number of FlowFiles and their
-     *         combined data size for all FlowFiles waiting to be processed by the
-     *         Processor that owns this ProcessSession, regardless of which Connection
-     *         the FlowFiles live on
+     * @return the QueueSize that represents the number of FlowFiles and their combined data size for all FlowFiles waiting to be processed by the Processor that owns this ProcessSession, regardless
+     * of which Connection the FlowFiles live on
      */
-    @Override
-    public QueueSize getQueueSize() {
+    @Override public QueueSize getQueueSize() {
         return s.getQueueSize();
     }
 
@@ -356,8 +332,7 @@ public class ProcessSessionWrap implements ProcessSession {
      *
      * @return newly created FlowFile
      */
-    @Override
-    public SessionFile create() {
+    @Override public SessionFile create() {
         return wrap(onMod(s.create()));
     }
 
@@ -372,8 +347,7 @@ public class ProcessSessionWrap implements ProcessSession {
      * @param parent to base the new flowfile on
      * @return newly created flowfile
      */
-    @Override
-    public SessionFile create(FlowFile parent) {
+    @Override public SessionFile create(FlowFile parent) {
         return wrap(onMod(s.create(unwrap(parent))));
     }
 
@@ -388,8 +362,7 @@ public class ProcessSessionWrap implements ProcessSession {
      * @param parents which the new flowfile should inherit shared attributes from
      * @return new flowfile
      */
-    @Override
-    public SessionFile create(Collection<FlowFile> parents) {
+    @Override public SessionFile create(Collection<FlowFile> parents) {
         return wrap(onMod(s.create(unwrap(parents))));
     }
 
@@ -398,25 +371,16 @@ public class ProcessSessionWrap implements ProcessSession {
      * time this is called, both in content and attributes. This method
      * automatically emits a Provenance CLONE Event.
      *
-     * @param example FlowFile to be the source of cloning - given FlowFile must
-     *            be a part of the given session
+     * @param example FlowFile to be the source of cloning - given FlowFile must be a part of the given session
      * @return FlowFile that is a clone of the given example
-     * @throws IllegalStateException if detected that this method is being
-     *             called from within a callback of another method in this session and for
-     *             the given FlowFile(s)
-     * @throws FlowFileHandlingException if the given FlowFile is already
-     *             transferred or removed or doesn't belong to this session. Automatic
-     *             rollback will occur.
-     * @throws MissingFlowFileException if the given FlowFile content cannot be
-     *             found. The FlowFile should no longer be reference, will be internally
-     *             destroyed, and the session is automatically rolled back and what is left
-     *             of the FlowFile is destroyed.
-     * @throws FlowFileAccessException if some IO problem occurs accessing
-     *             FlowFile content
+     * @throws IllegalStateException if detected that this method is being called from within a callback of another method in this session and for the given FlowFile(s)
+     * @throws FlowFileHandlingException if the given FlowFile is already transferred or removed or doesn't belong to this session. Automatic rollback will occur.
+     * @throws MissingFlowFileException if the given FlowFile content cannot be found. The FlowFile should no longer be reference, will be internally destroyed, and the session is automatically rolled
+     * back and what is left of the FlowFile is destroyed.
+     * @throws FlowFileAccessException if some IO problem occurs accessing FlowFile content
      * @throws NullPointerException if the argument null
      */
-    @Override
-    public SessionFile clone(FlowFile example) {
+    @Override public SessionFile clone(FlowFile example) {
         return wrap(onMod(s.clone(unwrap(example))));
     }
 
@@ -432,23 +396,14 @@ public class ProcessSessionWrap implements ProcessSession {
      * @param parent to base the new flowfile attributes on
      * @param offset of the parent flowfile to base the child flowfile content on
      * @param size of the new flowfile from the offset
-     * @return a FlowFile with the specified size whose parent is first argument
-     *         to this function
-     *
-     * @throws IllegalStateException if detected that this method is being
-     *             called from within a callback of another method in this session and for
-     *             the given FlowFile
-     * @throws FlowFileHandlingException if the given FlowFile is already
-     *             transferred or removed or doesn't belong to this session, or if the
-     *             specified offset + size exceeds that of the size of the parent FlowFile.
-     *             Automatic rollback will occur.
-     * @throws MissingFlowFileException if the given FlowFile content cannot be
-     *             found. The FlowFile should no longer be reference, will be internally
-     *             destroyed, and the session is automatically rolled back and what is left
-     *             of the FlowFile is destroyed.
+     * @return a FlowFile with the specified size whose parent is first argument to this function
+     * @throws IllegalStateException if detected that this method is being called from within a callback of another method in this session and for the given FlowFile
+     * @throws FlowFileHandlingException if the given FlowFile is already transferred or removed or doesn't belong to this session, or if the specified offset + size exceeds that of the size of the
+     * parent FlowFile. Automatic rollback will occur.
+     * @throws MissingFlowFileException if the given FlowFile content cannot be found. The FlowFile should no longer be reference, will be internally destroyed, and the session is automatically rolled
+     * back and what is left of the FlowFile is destroyed.
      */
-    @Override
-    public SessionFile clone(FlowFile parent, long offset, long size) {
+    @Override public SessionFile clone(FlowFile parent, long offset, long size) {
         return wrap(onMod(s.clone(unwrap(parent), offset, size)));
     }
 
@@ -458,18 +413,13 @@ public class ProcessSessionWrap implements ProcessSession {
      *
      * @param flowFile to penalize
      * @return FlowFile the new FlowFile reference to use
-     * @throws IllegalStateException if detected that this method is being
-     *             called from within a callback of another method in this session and for
-     *             the given FlowFile(s)
-     * @throws FlowFileHandlingException if the given FlowFile is already
-     *             transferred or removed or doesn't belong to this session. Automatic
-     *             rollback will occur.
+     * @throws IllegalStateException if detected that this method is being called from within a callback of another method in this session and for the given FlowFile(s)
+     * @throws FlowFileHandlingException if the given FlowFile is already transferred or removed or doesn't belong to this session. Automatic rollback will occur.
      * @throws NullPointerException if the argument null
      */
-    @Override
-    public SessionFile penalize(FlowFile flowFile) {
-    	SessionFile sf = wrap(flowFile);
-    	sf.flowFile = onMod(s.penalize(sf.flowFile));
+    @Override public SessionFile penalize(FlowFile flowFile) {
+        SessionFile sf = wrap(flowFile);
+        sf.flowFile = onMod(s.penalize(sf.flowFile));
         return sf;
     }
 
@@ -481,15 +431,12 @@ public class ProcessSessionWrap implements ProcessSession {
      * @param key of attribute
      * @param value of attribute
      * @return FlowFile the updated FlowFile
-     * @throws FlowFileHandlingException if the given FlowFile is already
-     *             transferred or removed or doesn't belong to this session. Automatic
-     *             rollback will occur.
+     * @throws FlowFileHandlingException if the given FlowFile is already transferred or removed or doesn't belong to this session. Automatic rollback will occur.
      * @throws NullPointerException if an argument is null
      */
-    @Override
-    public SessionFile putAttribute(FlowFile flowFile, String key, String value) {
-    	SessionFile sf = wrap(flowFile);
-    	sf.flowFile = onMod(s.putAttribute(sf.flowFile, key, value));
+    @Override public SessionFile putAttribute(FlowFile flowFile, String key, String value) {
+        SessionFile sf = wrap(flowFile);
+        sf.flowFile = onMod(s.putAttribute(sf.flowFile, key, value));
         return sf;
     }
 
@@ -501,17 +448,12 @@ public class ProcessSessionWrap implements ProcessSession {
      * @param flowFile to update
      * @param attributes the attributes to add to the given FlowFile
      * @return FlowFile the updated FlowFile
-     * @throws IllegalStateException if detected that this method is being
-     *             called from within a callback of another method in this session and for
-     *             the given FlowFile(s)
-     * @throws FlowFileHandlingException if the given FlowFile is already
-     *             transferred or removed or doesn't belong to this session. Automatic
-     *             rollback will occur.
+     * @throws IllegalStateException if detected that this method is being called from within a callback of another method in this session and for the given FlowFile(s)
+     * @throws FlowFileHandlingException if the given FlowFile is already transferred or removed or doesn't belong to this session. Automatic rollback will occur.
      * @throws NullPointerException if an argument is null
      */
-    @Override
-    public SessionFile putAllAttributes(FlowFile flowFile, Map<String, String> attributes) {
-    	SessionFile sf = wrap(flowFile);
+    @Override public SessionFile putAllAttributes(FlowFile flowFile, Map<String, String> attributes) {
+        SessionFile sf = wrap(flowFile);
         sf.flowFile = onMod(s.putAllAttributes(sf.flowFile, attributes));
         return sf;
     }
@@ -524,19 +466,14 @@ public class ProcessSessionWrap implements ProcessSession {
      * @param flowFile to update
      * @param key of attribute
      * @return FlowFile the updated FlowFile
-     * @throws IllegalStateException if detected that this method is being
-     *             called from within a callback of another method in this session and for
-     *             the given FlowFile(s)
-     * @throws FlowFileHandlingException if the given FlowFile is already
-     *             transferred or removed or doesn't belong to this session. Automatic
-     *             rollback will occur.
+     * @throws IllegalStateException if detected that this method is being called from within a callback of another method in this session and for the given FlowFile(s)
+     * @throws FlowFileHandlingException if the given FlowFile is already transferred or removed or doesn't belong to this session. Automatic rollback will occur.
      * @throws NullPointerException if the argument null
      */
-    @Override
-    public SessionFile removeAttribute(FlowFile flowFile, String key) {
-    	SessionFile sf = wrap(flowFile);
-    	sf.flowFile = onMod(s.removeAttribute(sf.flowFile, key));
-    	return sf;
+    @Override public SessionFile removeAttribute(FlowFile flowFile, String key) {
+        SessionFile sf = wrap(flowFile);
+        sf.flowFile = onMod(s.removeAttribute(sf.flowFile, key));
+        return sf;
     }
 
     /**
@@ -546,17 +483,12 @@ public class ProcessSessionWrap implements ProcessSession {
      * @param flowFile to update
      * @param keys of attribute
      * @return FlowFile the updated FlowFile
-     * @throws IllegalStateException if detected that this method is being
-     *             called from within a callback of another method in this session and for
-     *             the given FlowFile(s)
-     * @throws FlowFileHandlingException if the given FlowFile is already
-     *             transferred or removed or doesn't belong to this session. Automatic
-     *             rollback will occur.
+     * @throws IllegalStateException if detected that this method is being called from within a callback of another method in this session and for the given FlowFile(s)
+     * @throws FlowFileHandlingException if the given FlowFile is already transferred or removed or doesn't belong to this session. Automatic rollback will occur.
      * @throws NullPointerException if the argument null
      */
-    @Override
-    public SessionFile removeAllAttributes(FlowFile flowFile, Set<String> keys) {
-    	SessionFile sf = wrap(flowFile);
+    @Override public SessionFile removeAllAttributes(FlowFile flowFile, Set<String> keys) {
+        SessionFile sf = wrap(flowFile);
         sf.flowFile = onMod(s.removeAllAttributes(sf.flowFile, keys));
         return sf;
     }
@@ -567,14 +499,11 @@ public class ProcessSessionWrap implements ProcessSession {
      * will not be removed.
      *
      * @param flowFile to update
-     * @param keyPattern may be null; if supplied is matched against each of the
-     *            FlowFile attribute keys
-     * @return FlowFile containing only attributes which did not meet the key
-     *         pattern
+     * @param keyPattern may be null; if supplied is matched against each of the FlowFile attribute keys
+     * @return FlowFile containing only attributes which did not meet the key pattern
      */
-    @Override
-    public SessionFile removeAllAttributes(FlowFile flowFile, Pattern keyPattern) {
-    	SessionFile sf = wrap(flowFile);
+    @Override public SessionFile removeAllAttributes(FlowFile flowFile, Pattern keyPattern) {
+        SessionFile sf = wrap(flowFile);
         sf.flowFile = onMod(s.removeAllAttributes(sf.flowFile, keyPattern));
         return sf;
     }
@@ -593,19 +522,13 @@ public class ProcessSessionWrap implements ProcessSession {
      *
      * @param flowFile to transfer
      * @param relationship to transfer to
-     * @throws IllegalStateException if detected that this method is being
-     *             called from within a callback of another method in this session and for
-     *             the given FlowFile(s)
-     * @throws FlowFileHandlingException if the given FlowFile is already
-     *             transferred or removed or doesn't belong to this session. Automatic
-     *             rollback will occur.
+     * @throws IllegalStateException if detected that this method is being called from within a callback of another method in this session and for the given FlowFile(s)
+     * @throws FlowFileHandlingException if the given FlowFile is already transferred or removed or doesn't belong to this session. Automatic rollback will occur.
      * @throws NullPointerException if the argument null
-     * @throws IllegalArgumentException if given relationship is not a known or
-     *             registered relationship
+     * @throws IllegalArgumentException if given relationship is not a known or registered relationship
      */
-    @Override
-    public void transfer(FlowFile flowFile, Relationship relationship) {
-    	flowFile = unwrap(flowFile);
+    @Override public void transfer(FlowFile flowFile, Relationship relationship) {
+        flowFile = unwrap(flowFile);
         s.transfer(flowFile, relationship);
     }
 
@@ -617,19 +540,13 @@ public class ProcessSessionWrap implements ProcessSession {
      * processor cannot be transferred back to themselves via this method.
      *
      * @param flowFile to transfer
-     * @throws IllegalStateException if detected that this method is being
-     *             called from within a callback of another method in this session and for
-     *             the given FlowFile(s)
-     * @throws FlowFileHandlingException if the given FlowFile is already
-     *             transferred or removed or doesn't belong to this session. Automatic
-     *             rollback will occur.
-     * @throws IllegalArgumentException if the FlowFile was created by this
-     *             processor
+     * @throws IllegalStateException if detected that this method is being called from within a callback of another method in this session and for the given FlowFile(s)
+     * @throws FlowFileHandlingException if the given FlowFile is already transferred or removed or doesn't belong to this session. Automatic rollback will occur.
+     * @throws IllegalArgumentException if the FlowFile was created by this processor
      * @throws NullPointerException if the argument null
      */
-    @Override
-    public void transfer(FlowFile flowFile) {
-    	flowFile = unwrap(flowFile);
+    @Override public void transfer(FlowFile flowFile) {
+        flowFile = unwrap(flowFile);
         s.transfer(flowFile);
     }
 
@@ -642,19 +559,13 @@ public class ProcessSessionWrap implements ProcessSession {
      * this method.
      *
      * @param flowFiles to transfer
-     * @throws IllegalStateException if detected that this method is being
-     *             called from within a callback of another method in this session and for
-     *             the given FlowFile(s)
-     * @throws FlowFileHandlingException if the given FlowFiles are already
-     *             transferred or removed or don't belong to this session. Automatic
-     *             rollback will occur.
-     * @throws IllegalArgumentException if the FlowFile was created by this
-     *             processor
+     * @throws IllegalStateException if detected that this method is being called from within a callback of another method in this session and for the given FlowFile(s)
+     * @throws FlowFileHandlingException if the given FlowFiles are already transferred or removed or don't belong to this session. Automatic rollback will occur.
+     * @throws IllegalArgumentException if the FlowFile was created by this processor
      * @throws NullPointerException if the argument null
      */
-    @Override
-    public void transfer(Collection<FlowFile> flowFiles) {
-    	flowFiles = unwrap(flowFiles);
+    @Override public void transfer(Collection<FlowFile> flowFiles) {
+        flowFiles = unwrap(flowFiles);
         s.transfer(flowFiles);
     }
 
@@ -672,19 +583,13 @@ public class ProcessSessionWrap implements ProcessSession {
      *
      * @param flowFiles to transfer
      * @param relationship to transfer to
-     * @throws IllegalStateException if detected that this method is being
-     *             called from within a callback of another method in this session and for
-     *             the given FlowFile(s)
-     * @throws FlowFileHandlingException if the given FlowFile is already
-     *             transferred or removed or doesn't belong to this session. Automatic
-     *             rollback will occur.
+     * @throws IllegalStateException if detected that this method is being called from within a callback of another method in this session and for the given FlowFile(s)
+     * @throws FlowFileHandlingException if the given FlowFile is already transferred or removed or doesn't belong to this session. Automatic rollback will occur.
      * @throws NullPointerException if the argument null
-     * @throws IllegalArgumentException if given relationship is not a known or
-     *             registered relationship
+     * @throws IllegalArgumentException if given relationship is not a known or registered relationship
      */
-    @Override
-    public void transfer(Collection<FlowFile> flowFiles, Relationship relationship) {
-    	flowFiles = unwrap(flowFiles);
+    @Override public void transfer(Collection<FlowFile> flowFiles, Relationship relationship) {
+        flowFiles = unwrap(flowFiles);
         s.transfer(flowFiles, relationship);
     }
 
@@ -695,16 +600,11 @@ public class ProcessSessionWrap implements ProcessSession {
      * for further operation.
      *
      * @param flowFile to remove
-     * @throws IllegalStateException if detected that this method is being
-     *             called from within a callback of another method in this session and for
-     *             the given FlowFile(s)
-     * @throws FlowFileHandlingException if the given FlowFile is already
-     *             transferred or removed or doesn't belong to this session. Automatic
-     *             rollback will occur.
+     * @throws IllegalStateException if detected that this method is being called from within a callback of another method in this session and for the given FlowFile(s)
+     * @throws FlowFileHandlingException if the given FlowFile is already transferred or removed or doesn't belong to this session. Automatic rollback will occur.
      */
-    @Override
-    public void remove(FlowFile flowFile) {
-    	flowFile = unwrap(flowFile);
+    @Override public void remove(FlowFile flowFile) {
+        flowFile = unwrap(flowFile);
         s.remove(flowFile);
         onDrop(flowFile);
     }
@@ -716,16 +616,11 @@ public class ProcessSessionWrap implements ProcessSession {
      * for further operation.
      *
      * @param flowFiles to remove
-     * @throws IllegalStateException if detected that this method is being
-     *             called from within a callback of another method in this session and for
-     *             the given FlowFile(s)
-     * @throws FlowFileHandlingException if any of the given FlowFile is already
-     *             transferred or removed or doesn't belong to this session. Automatic
-     *             rollback will occur.
+     * @throws IllegalStateException if detected that this method is being called from within a callback of another method in this session and for the given FlowFile(s)
+     * @throws FlowFileHandlingException if any of the given FlowFile is already transferred or removed or doesn't belong to this session. Automatic rollback will occur.
      */
-    @Override
-    public void remove(Collection<FlowFile> flowFiles) {
-    	flowFiles = unwrap(flowFiles);
+    @Override public void remove(Collection<FlowFile> flowFiles) {
+        flowFiles = unwrap(flowFiles);
         s.remove(flowFiles);
         onDrop(flowFiles);
     }
@@ -736,24 +631,15 @@ public class ProcessSessionWrap implements ProcessSession {
      *
      * @param source flowfile to retrieve content of
      * @param reader that will be called to read the flowfile content
-     * @throws IllegalStateException if detected that this method is being
-     *             called from within a callback of another method in this session and for
-     *             the given FlowFile(s)
-     * @throws FlowFileHandlingException if the given FlowFile is already
-     *             transferred or removed or doesn't belong to this session. Automatic
-     *             rollback will occur.
-     * @throws MissingFlowFileException if the given FlowFile content cannot be
-     *             found. The FlowFile should no longer be referenced, will be internally
-     *             destroyed, and the session is automatically rolled back and what is left
-     *             of the FlowFile is destroyed.
-     * @throws FlowFileAccessException if some IO problem occurs accessing
-     *             FlowFile content; if an attempt is made to access the InputStream
-     *             provided to the given InputStreamCallback after this method completed its
-     *             execution
+     * @throws IllegalStateException if detected that this method is being called from within a callback of another method in this session and for the given FlowFile(s)
+     * @throws FlowFileHandlingException if the given FlowFile is already transferred or removed or doesn't belong to this session. Automatic rollback will occur.
+     * @throws MissingFlowFileException if the given FlowFile content cannot be found. The FlowFile should no longer be referenced, will be internally destroyed, and the session is automatically
+     * rolled back and what is left of the FlowFile is destroyed.
+     * @throws FlowFileAccessException if some IO problem occurs accessing FlowFile content; if an attempt is made to access the InputStream provided to the given InputStreamCallback after this method
+     * completed its execution
      */
-    @Override
-    public void read(FlowFile flowFile, InputStreamCallback reader) throws FlowFileAccessException {
-    	flowFile = unwrap(flowFile);
+    @Override public void read(FlowFile flowFile, InputStreamCallback reader) throws FlowFileAccessException {
+        flowFile = unwrap(flowFile);
         s.read(flowFile, reader);
     }
 
@@ -769,20 +655,13 @@ public class ProcessSessionWrap implements ProcessSession {
      *
      * @param flowFile the FlowFile to read
      * @return an InputStream that can be used to read the contents of the FlowFile
-     * @throws IllegalStateException if detected that this method is being
-     *             called from within a callback of another method in this session and for
-     *             the given FlowFile(s)
-     * @throws FlowFileHandlingException if the given FlowFile is already
-     *             transferred or removed or doesn't belong to this session. Automatic
-     *             rollback will occur.
-     * @throws MissingFlowFileException if the given FlowFile content cannot be
-     *             found. The FlowFile should no longer be referenced, will be internally
-     *             destroyed, and the session is automatically rolled back and what is left
-     *             of the FlowFile is destroyed.
+     * @throws IllegalStateException if detected that this method is being called from within a callback of another method in this session and for the given FlowFile(s)
+     * @throws FlowFileHandlingException if the given FlowFile is already transferred or removed or doesn't belong to this session. Automatic rollback will occur.
+     * @throws MissingFlowFileException if the given FlowFile content cannot be found. The FlowFile should no longer be referenced, will be internally destroyed, and the session is automatically
+     * rolled back and what is left of the FlowFile is destroyed.
      */
-    @Override
-    public InputStream read(FlowFile flowFile) {
-    	flowFile = unwrap(flowFile);
+    @Override public InputStream read(FlowFile flowFile) {
+        flowFile = unwrap(flowFile);
         return s.read(flowFile);
     }
 
@@ -796,24 +675,15 @@ public class ProcessSessionWrap implements ProcessSession {
      * @param source flowfile to retrieve content of
      * @param allowSessionStreamManagement allow session to hold the stream open for performance reasons
      * @param reader that will be called to read the flowfile content
-     * @throws IllegalStateException if detected that this method is being
-     *             called from within a callback of another method in this session and for
-     *             the given FlowFile(s)
-     * @throws FlowFileHandlingException if the given FlowFile is already
-     *             transferred or removed or doesn't belong to this session. Automatic
-     *             rollback will occur.
-     * @throws MissingFlowFileException if the given FlowFile content cannot be
-     *             found. The FlowFile should no longer be reference, will be internally
-     *             destroyed, and the session is automatically rolled back and what is left
-     *             of the FlowFile is destroyed.
-     * @throws FlowFileAccessException if some IO problem occurs accessing
-     *             FlowFile content; if an attempt is made to access the InputStream
-     *             provided to the given InputStreamCallback after this method completed its
-     *             execution
+     * @throws IllegalStateException if detected that this method is being called from within a callback of another method in this session and for the given FlowFile(s)
+     * @throws FlowFileHandlingException if the given FlowFile is already transferred or removed or doesn't belong to this session. Automatic rollback will occur.
+     * @throws MissingFlowFileException if the given FlowFile content cannot be found. The FlowFile should no longer be reference, will be internally destroyed, and the session is automatically rolled
+     * back and what is left of the FlowFile is destroyed.
+     * @throws FlowFileAccessException if some IO problem occurs accessing FlowFile content; if an attempt is made to access the InputStream provided to the given InputStreamCallback after this method
+     * completed its execution
      */
-    @Override
-    public void read(FlowFile flowFile, boolean allowSessionStreamManagement, InputStreamCallback reader) throws FlowFileAccessException {
-    	flowFile = unwrap(flowFile);
+    @Override public void read(FlowFile flowFile, boolean allowSessionStreamManagement, InputStreamCallback reader) throws FlowFileAccessException {
+        flowFile = unwrap(flowFile);
         s.read(flowFile, allowSessionStreamManagement, reader);
     }
 
@@ -824,26 +694,16 @@ public class ProcessSessionWrap implements ProcessSession {
      * @param sources the flowfiles to merge
      * @param destination the flowfile to use as the merged result
      * @return updated destination FlowFile (new size, etc...)
-     * @throws IllegalStateException if detected that this method is being
-     *             called from within a callback of another method in this session and for
-     *             the given FlowFile(s)
-     * @throws IllegalArgumentException if the given destination is contained
-     *             within the sources
-     * @throws FlowFileHandlingException if the given FlowFile is already
-     *             transferred or removed or doesn't belong to this session. Automatic
-     *             rollback will occur.
-     * @throws MissingFlowFileException if the given FlowFile content cannot be
-     *             found. The FlowFile should no longer be reference, will be internally
-     *             destroyed, and the session is automatically rolled back and what is left
-     *             of the FlowFile is destroyed.
-     * @throws FlowFileAccessException if some IO problem occurs accessing
-     *             FlowFile content. The state of the destination will be as it was prior to
-     *             this call.
+     * @throws IllegalStateException if detected that this method is being called from within a callback of another method in this session and for the given FlowFile(s)
+     * @throws IllegalArgumentException if the given destination is contained within the sources
+     * @throws FlowFileHandlingException if the given FlowFile is already transferred or removed or doesn't belong to this session. Automatic rollback will occur.
+     * @throws MissingFlowFileException if the given FlowFile content cannot be found. The FlowFile should no longer be reference, will be internally destroyed, and the session is automatically rolled
+     * back and what is left of the FlowFile is destroyed.
+     * @throws FlowFileAccessException if some IO problem occurs accessing FlowFile content. The state of the destination will be as it was prior to this call.
      */
-    @Override
-    public SessionFile merge(Collection<FlowFile> sources, FlowFile destination) {
-    	SessionFile sfDestination = wrap(destination);
-    	sources = unwrap(sources);
+    @Override public SessionFile merge(Collection<FlowFile> sources, FlowFile destination) {
+        SessionFile sfDestination = wrap(destination);
+        sources = unwrap(sources);
         sfDestination.flowFile = onMod(s.merge(sources, sfDestination.flowFile));
         return sfDestination;
     }
@@ -854,33 +714,20 @@ public class ProcessSessionWrap implements ProcessSession {
      *
      * @param sources to merge together
      * @param destination to merge to
-     * @param header bytes that will be added to the beginning of the merged
-     *            output. May be null or empty.
-     * @param footer bytes that will be added to the end of the merged output.
-     *            May be null or empty.
-     * @param demarcator bytes that will be placed in between each object merged
-     *            together. May be null or empty.
+     * @param header bytes that will be added to the beginning of the merged output. May be null or empty.
+     * @param footer bytes that will be added to the end of the merged output. May be null or empty.
+     * @param demarcator bytes that will be placed in between each object merged together. May be null or empty.
      * @return updated destination FlowFile (new size, etc...)
-     * @throws IllegalStateException if detected that this method is being
-     *             called from within a callback of another method in this session and for
-     *             the given FlowFile(s)
-     * @throws IllegalArgumentException if the given destination is contained
-     *             within the sources
-     * @throws FlowFileHandlingException if the given FlowFile is already
-     *             transferred or removed or doesn't belong to this session. Automatic
-     *             rollback will occur.
-     * @throws MissingFlowFileException if the given FlowFile content cannot be
-     *             found. The FlowFile should no longer be reference, will be internally
-     *             destroyed, and the session is automatically rolled back and what is left
-     *             of the FlowFile is destroyed.
-     * @throws FlowFileAccessException if some IO problem occurs accessing
-     *             FlowFile content. The state of the destination will be as it was prior to
-     *             this call.
+     * @throws IllegalStateException if detected that this method is being called from within a callback of another method in this session and for the given FlowFile(s)
+     * @throws IllegalArgumentException if the given destination is contained within the sources
+     * @throws FlowFileHandlingException if the given FlowFile is already transferred or removed or doesn't belong to this session. Automatic rollback will occur.
+     * @throws MissingFlowFileException if the given FlowFile content cannot be found. The FlowFile should no longer be reference, will be internally destroyed, and the session is automatically rolled
+     * back and what is left of the FlowFile is destroyed.
+     * @throws FlowFileAccessException if some IO problem occurs accessing FlowFile content. The state of the destination will be as it was prior to this call.
      */
-    @Override
-    public SessionFile merge(Collection<FlowFile> sources, FlowFile destination, byte[] header, byte[] footer, byte[] demarcator) {
-    	SessionFile sfDestination = wrap(destination);
-    	sources = unwrap(sources);
+    @Override public SessionFile merge(Collection<FlowFile> sources, FlowFile destination, byte[] header, byte[] footer, byte[] demarcator) {
+        SessionFile sfDestination = wrap(destination);
+        sources = unwrap(sources);
         sfDestination.flowFile = onMod(s.merge(sources, sfDestination.flowFile, header, footer, demarcator));
         return sfDestination;
     }
@@ -895,26 +742,17 @@ public class ProcessSessionWrap implements ProcessSession {
      * @param source to write to
      * @param writer used to write new content
      * @return updated FlowFile
-     * @throws IllegalStateException if detected that this method is being
-     *             called from within a callback of another method in this session and for
-     *             the given FlowFile(s)
-     * @throws FlowFileHandlingException if the given FlowFile is already
-     *             transferred or removed or doesn't belong to this session. Automatic
-     *             rollback will occur.
-     * @throws MissingFlowFileException if the given FlowFile content cannot be
-     *             found. The FlowFile should no longer be referenced, will be internally
-     *             destroyed, and the session is automatically rolled back and what is left
-     *             of the FlowFile is destroyed.
-     * @throws FlowFileAccessException if some IO problem occurs accessing
-     *             FlowFile content; if an attempt is made to access the OutputStream
-     *             provided to the given OutputStreamCallaback after this method completed
-     *             its execution
+     * @throws IllegalStateException if detected that this method is being called from within a callback of another method in this session and for the given FlowFile(s)
+     * @throws FlowFileHandlingException if the given FlowFile is already transferred or removed or doesn't belong to this session. Automatic rollback will occur.
+     * @throws MissingFlowFileException if the given FlowFile content cannot be found. The FlowFile should no longer be referenced, will be internally destroyed, and the session is automatically
+     * rolled back and what is left of the FlowFile is destroyed.
+     * @throws FlowFileAccessException if some IO problem occurs accessing FlowFile content; if an attempt is made to access the OutputStream provided to the given OutputStreamCallaback after this
+     * method completed its execution
      */
-    @Override
-    public SessionFile write(FlowFile flowFile, OutputStreamCallback writer) throws FlowFileAccessException {
-    	SessionFile sf = wrap(flowFile);
-    	sf.flowFile = onMod(s.write(sf.flowFile, writer));
-    	return sf;
+    @Override public SessionFile write(FlowFile flowFile, OutputStreamCallback writer) throws FlowFileAccessException {
+        SessionFile sf = wrap(flowFile);
+        sf.flowFile = onMod(s.write(sf.flowFile, writer));
+        return sf;
     }
 
     /**
@@ -928,24 +766,15 @@ public class ProcessSessionWrap implements ProcessSession {
      * @param source to read from and write to
      * @param writer used to read the old content and write new content
      * @return updated FlowFile
-     * @throws IllegalStateException if detected that this method is being
-     *             called from within a callback of another method in this session and for
-     *             the given FlowFile(s)
-     * @throws FlowFileHandlingException if the given FlowFile is already
-     *             transferred or removed or doesn't belong to this session. Automatic
-     *             rollback will occur.
-     * @throws MissingFlowFileException if the given FlowFile content cannot be
-     *             found. The FlowFile should no longer be reference, will be internally
-     *             destroyed, and the session is automatically rolled back and what is left
-     *             of the FlowFile is destroyed.
-     * @throws FlowFileAccessException if some IO problem occurs accessing
-     *             FlowFile content; if an attempt is made to access the InputStream or
-     *             OutputStream provided to the given StreamCallback after this method
-     *             completed its execution
+     * @throws IllegalStateException if detected that this method is being called from within a callback of another method in this session and for the given FlowFile(s)
+     * @throws FlowFileHandlingException if the given FlowFile is already transferred or removed or doesn't belong to this session. Automatic rollback will occur.
+     * @throws MissingFlowFileException if the given FlowFile content cannot be found. The FlowFile should no longer be reference, will be internally destroyed, and the session is automatically rolled
+     * back and what is left of the FlowFile is destroyed.
+     * @throws FlowFileAccessException if some IO problem occurs accessing FlowFile content; if an attempt is made to access the InputStream or OutputStream provided to the given StreamCallback after
+     * this method completed its execution
      */
-    @Override
-    public SessionFile write(FlowFile flowFile, StreamCallback writer) throws FlowFileAccessException {
-    	SessionFile sf = wrap(flowFile);
+    @Override public SessionFile write(FlowFile flowFile, StreamCallback writer) throws FlowFileAccessException {
+        SessionFile sf = wrap(flowFile);
         sf.flowFile = onMod(s.write(sf.flowFile, writer));
         return sf;
     }
@@ -961,13 +790,10 @@ public class ProcessSessionWrap implements ProcessSession {
      * @param source the flowfile for which content should be appended
      * @param writer used to write new bytes to the flowfile content
      * @return the updated flowfile reference for the new content
-     * @throws FlowFileAccessException if an attempt is made to access the
-     *             OutputStream provided to the given OutputStreamCallaback after this
-     *             method completed its execution
+     * @throws FlowFileAccessException if an attempt is made to access the OutputStream provided to the given OutputStreamCallaback after this method completed its execution
      */
-    @Override
-    public SessionFile append(FlowFile flowFile, OutputStreamCallback writer) throws FlowFileAccessException {
-    	SessionFile sf = wrap(flowFile);
+    @Override public SessionFile append(FlowFile flowFile, OutputStreamCallback writer) throws FlowFileAccessException {
+        SessionFile sf = wrap(flowFile);
         sf.flowFile = onMod(s.append(sf.flowFile, writer));
         return sf;
     }
@@ -976,31 +802,19 @@ public class ProcessSessionWrap implements ProcessSession {
      * Writes to the given FlowFile all content from the given content path.
      *
      * @param source the file from which content will be obtained
-     * @param keepSourceFile if true the content is simply copied; if false the
-     *            original content might be used in a destructive way for efficiency such
-     *            that the repository will have the data but the original data will be
-     *            gone. If false the source object will be removed or gone once imported.
-     *            It will not be restored if the session is rolled back so this must be
-     *            used with caution. In some cases it can result in tremendous efficiency
-     *            gains but is also dangerous.
+     * @param keepSourceFile if true the content is simply copied; if false the original content might be used in a destructive way for efficiency such that the repository will have the data but the
+     * original data will be gone. If false the source object will be removed or gone once imported. It will not be restored if the session is rolled back so this must be used with caution. In some
+     * cases it can result in tremendous efficiency gains but is also dangerous.
      * @param destination the FlowFile whose content will be updated
      * @return the updated destination FlowFile (new size)
-     * @throws IllegalStateException if detected that this method is being
-     *             called from within a callback of another method in this session and for
-     *             the given FlowFile(s)
-     * @throws FlowFileHandlingException if the given FlowFile is already
-     *             transferred or removed or doesn't belong to this session. Automatic
-     *             rollback will occur.
-     * @throws MissingFlowFileException if the given FlowFile content cannot be
-     *             found. The FlowFile should no longer be reference, will be internally
-     *             destroyed, and the session is automatically rolled back and what is left
-     *             of the FlowFile is destroyed.
-     * @throws FlowFileAccessException if some IO problem occurs accessing
-     *             FlowFile content
+     * @throws IllegalStateException if detected that this method is being called from within a callback of another method in this session and for the given FlowFile(s)
+     * @throws FlowFileHandlingException if the given FlowFile is already transferred or removed or doesn't belong to this session. Automatic rollback will occur.
+     * @throws MissingFlowFileException if the given FlowFile content cannot be found. The FlowFile should no longer be reference, will be internally destroyed, and the session is automatically rolled
+     * back and what is left of the FlowFile is destroyed.
+     * @throws FlowFileAccessException if some IO problem occurs accessing FlowFile content
      */
-    @Override
-    public SessionFile importFrom(Path source, boolean keepSourceFile, FlowFile flowFile) {
-    	SessionFile sf = wrap(flowFile);
+    @Override public SessionFile importFrom(Path source, boolean keepSourceFile, FlowFile flowFile) {
+        SessionFile sf = wrap(flowFile);
         sf.flowFile = onMod(s.importFrom(source, keepSourceFile, sf.flowFile));
         return sf;
     }
@@ -1011,24 +825,16 @@ public class ProcessSessionWrap implements ProcessSession {
      * @param source the file from which content will be obtained
      * @param destination the FlowFile whose content will be updated
      * @return the updated destination FlowFile (new size)
-     * @throws IllegalStateException if detected that this method is being
-     *             called from within a callback of another method in this session and for
-     *             the given FlowFile(s)
-     * @throws FlowFileHandlingException if the given FlowFile is already
-     *             transferred or removed or doesn't belong to this session. Automatic
-     *             rollback will occur.
-     * @throws MissingFlowFileException if the given FlowFile content cannot be
-     *             found. The FlowFile should no longer be reference, will be internally
-     *             destroyed, and the session is automatically rolled back and what is left
-     *             of the FlowFile is destroyed.
-     * @throws FlowFileAccessException if some IO problem occurs accessing
-     *             FlowFile content
+     * @throws IllegalStateException if detected that this method is being called from within a callback of another method in this session and for the given FlowFile(s)
+     * @throws FlowFileHandlingException if the given FlowFile is already transferred or removed or doesn't belong to this session. Automatic rollback will occur.
+     * @throws MissingFlowFileException if the given FlowFile content cannot be found. The FlowFile should no longer be reference, will be internally destroyed, and the session is automatically rolled
+     * back and what is left of the FlowFile is destroyed.
+     * @throws FlowFileAccessException if some IO problem occurs accessing FlowFile content
      */
-    @Override
-    public SessionFile importFrom(InputStream source, FlowFile flowFile) {
-    	SessionFile sf = wrap(flowFile);
-    	sf.flowFile = onMod(s.importFrom(source, sf.flowFile));
-    	return sf;
+    @Override public SessionFile importFrom(InputStream source, FlowFile flowFile) {
+        SessionFile sf = wrap(flowFile);
+        sf.flowFile = onMod(s.importFrom(source, sf.flowFile));
+        return sf;
     }
 
     /**
@@ -1036,24 +842,15 @@ public class ProcessSessionWrap implements ProcessSession {
      *
      * @param flowFile to export the content of
      * @param destination to export the content to
-     * @param append if true will append to the current content at the given
-     *            path; if false will replace any current content
-     * @throws IllegalStateException if detected that this method is being
-     *             called from within a callback of another method in this session and for
-     *             the given FlowFile(s)
-     * @throws FlowFileHandlingException if the given FlowFile is already
-     *             transferred or removed or doesn't belong to this session. Automatic
-     *             rollback will occur.
-     * @throws MissingFlowFileException if the given FlowFile content cannot be
-     *             found. The FlowFile should no longer be reference, will be internally
-     *             destroyed, and the session is automatically rolled back and what is left
-     *             of the FlowFile is destroyed.
-     * @throws FlowFileAccessException if some IO problem occurs accessing
-     *             FlowFile content
+     * @param append if true will append to the current content at the given path; if false will replace any current content
+     * @throws IllegalStateException if detected that this method is being called from within a callback of another method in this session and for the given FlowFile(s)
+     * @throws FlowFileHandlingException if the given FlowFile is already transferred or removed or doesn't belong to this session. Automatic rollback will occur.
+     * @throws MissingFlowFileException if the given FlowFile content cannot be found. The FlowFile should no longer be reference, will be internally destroyed, and the session is automatically rolled
+     * back and what is left of the FlowFile is destroyed.
+     * @throws FlowFileAccessException if some IO problem occurs accessing FlowFile content
      */
-    @Override
-    public void exportTo(FlowFile flowFile, Path destination, boolean append) {
-    	flowFile = unwrap(flowFile);
+    @Override public void exportTo(FlowFile flowFile, Path destination, boolean append) {
+        flowFile = unwrap(flowFile);
         s.exportTo(flowFile, destination, append);
     }
 
@@ -1062,22 +859,14 @@ public class ProcessSessionWrap implements ProcessSession {
      *
      * @param flowFile to export the content of
      * @param destination to export the content to
-     * @throws IllegalStateException if detected that this method is being
-     *             called from within a callback of another method in this session and for
-     *             the given FlowFile(s)
-     * @throws FlowFileHandlingException if the given FlowFile is already
-     *             transferred or removed or doesn't belong to this session. Automatic
-     *             rollback will occur.
-     * @throws MissingFlowFileException if the given FlowFile content cannot be
-     *             found. The FlowFile should no longer be reference, will be internally
-     *             destroyed, and the session is automatically rolled back and what is left
-     *             of the FlowFile is destroyed.
-     * @throws FlowFileAccessException if some IO problem occurs accessing
-     *             FlowFile content
+     * @throws IllegalStateException if detected that this method is being called from within a callback of another method in this session and for the given FlowFile(s)
+     * @throws FlowFileHandlingException if the given FlowFile is already transferred or removed or doesn't belong to this session. Automatic rollback will occur.
+     * @throws MissingFlowFileException if the given FlowFile content cannot be found. The FlowFile should no longer be reference, will be internally destroyed, and the session is automatically rolled
+     * back and what is left of the FlowFile is destroyed.
+     * @throws FlowFileAccessException if some IO problem occurs accessing FlowFile content
      */
-    @Override
-    public void exportTo(FlowFile flowFile, OutputStream destination) {
-    	flowFile = unwrap(flowFile);
+    @Override public void exportTo(FlowFile flowFile, OutputStream destination) {
+        flowFile = unwrap(flowFile);
         s.exportTo(flowFile, destination);
     }
 
@@ -1086,14 +875,12 @@ public class ProcessSessionWrap implements ProcessSession {
      *
      * @return the provenance reporter
      */
-    @Override
-    public ProvenanceReporter getProvenanceReporter() {
+    @Override public ProvenanceReporter getProvenanceReporter() {
         return s.getProvenanceReporter();
     }
 
-    @Override
-    public void migrate(ProcessSession newOwner, Collection<FlowFile> flowFiles) {
-    	flowFiles = unwrap(flowFiles);
+    @Override public void migrate(ProcessSession newOwner, Collection<FlowFile> flowFiles) {
+        flowFiles = unwrap(flowFiles);
         s.migrate(newOwner, flowFiles);
     }
 }
