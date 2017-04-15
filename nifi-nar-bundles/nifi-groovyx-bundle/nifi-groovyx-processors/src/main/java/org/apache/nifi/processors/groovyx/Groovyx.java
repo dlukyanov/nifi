@@ -296,7 +296,6 @@ import groovy.sql.Sql;
         ProcessSessionWrap session = new ProcessSessionWrap(_session, toFailureOnError);
 
         FlowFile flowFile = null;
-        Sql sql = null;
         boolean autocommit = true;
 
         if ("true".equals(requireFlow)) {
@@ -358,12 +357,6 @@ import groovy.sql.Sql;
             onCommitCTL(CTL);
             session.commit();
         } catch (Throwable t) {
-            if (sql != null) {
-                try {
-                    sql.rollback();
-                } catch (Throwable ei) {
-                }
-            }
             onFailCTL(CTL);
             if (toFailureOnError) {
                 getLogger().error(t.toString(), t);

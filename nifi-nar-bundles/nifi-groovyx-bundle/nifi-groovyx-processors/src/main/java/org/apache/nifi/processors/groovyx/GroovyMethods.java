@@ -28,7 +28,6 @@ import org.apache.nifi.processors.groovyx.flow.SessionFile;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.FlowFileFilter;
 import org.apache.nifi.processor.FlowFileFilter.FlowFileFilterResult;
-//import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.io.StreamCallback;
 import org.apache.nifi.flowfile.FlowFile;
