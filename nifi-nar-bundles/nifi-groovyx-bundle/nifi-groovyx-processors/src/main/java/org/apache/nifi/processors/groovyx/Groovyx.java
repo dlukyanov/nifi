@@ -366,19 +366,6 @@ import groovy.sql.Sql;
                 throw new ProcessException(t);
             }
         } finally {
-            if (sql != null) {
-                try {
-                    if (autocommit != false) {
-                        sql.getConnection().setAutoCommit(autocommit);
-                    }
-                } catch (Throwable ei) {
-                }
-                try {
-                    sql.close();
-                    sql = null;
-                } catch (Throwable ei) {
-                }
-            }
             onFinitCTL(CTL);
         }
 
