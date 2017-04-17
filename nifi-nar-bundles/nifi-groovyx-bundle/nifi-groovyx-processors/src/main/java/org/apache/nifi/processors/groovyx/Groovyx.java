@@ -188,12 +188,6 @@ import groovy.sql.Sql;
             }
             //try to add classpath with groovy classes
             String groovyPath = context.newPropertyValue("${groovy.classes.path}").evaluateAttributeExpressions().getValue();
-            if (groovyPath == null || groovyPath.length() == 0) {
-                groovyPath = context.newPropertyValue("${resources.path}").evaluateAttributeExpressions().getValue();
-                if (groovyPath != null && groovyPath.length() > 0) {
-                    groovyPath = groovyPath + "/common/classes";
-                }
-            }
             if (groovyPath != null && groovyPath.length() > 0) {
                 shell.getClassLoader().addClasspath(groovyPath);
             }
