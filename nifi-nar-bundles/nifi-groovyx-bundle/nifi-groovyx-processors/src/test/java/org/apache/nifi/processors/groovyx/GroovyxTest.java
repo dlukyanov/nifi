@@ -30,6 +30,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.nio.charset.StandardCharsets;
 
 import java.util.List;
 
@@ -39,6 +40,10 @@ public class GroovyxTest {
 
     protected TestRunner runner;
     protected Groovyx proc;
+    public final String TEST_RESOURCE_LOCATION = "target/test/resources/groovy/";
+    private final String TEST_CSV_DATA = "gender,title,first,last\n"
+            + "female,miss,marlene,shaw\n"
+            + "male,mr,todd,graham";
 
     /**
      * Copies all scripts to the target directory because when they are compiled they can leave unwanted .class files.
@@ -68,7 +73,7 @@ public class GroovyxTest {
     public void testReadFlowFileContentAndStoreInFlowFileAttribute() throws Exception {
         runner.setProperty(proc.SCRIPT_BODY, "flowFile.testAttr = flowFile.read().getText('UTF-8'); REL_SUCCESS << flowFile;");
         runner.setProperty(proc.REQUIRE_FLOW, "true");
-        runner.setProperty(proc.FAIL_STRATEGY, "rollback");
+        //runner.setProperty(proc.FAIL_STRATEGY, "rollback");
         
         runner.assertValid();
         runner.enqueue("test content".getBytes("UTF-8"));
@@ -78,5 +83,68 @@ public class GroovyxTest {
         final List<MockFlowFile> result = runner.getFlowFilesForRelationship(proc.REL_SUCCESS.getName());
         result.get(0).assertAttributeEquals("testAttr", "test content");
     }
+    
+    @Test
+    public void test_onTrigger_groovy() throws Exception {
+        runner.setProperty(proc.SCRIPT_FILE, TEST_RESOURCE_LOCATION+"test_onTrigger.groovy");
+        runner.setProperty(proc.REQUIRE_FLOW, "false");
+        //runner.setProperty(proc.FAIL_STRATEGY, "rollback");
+        runner.assertValid();
+        
+        runner.enqueue("test content".getBytes(StandardCharsets.UTF_8));
+        runner.run();
+        runner.assertAllFlowFilesTransferred(proc.REL_SUCCESS.getName(), 1);
+        final List<MockFlowFile> result = runner.getFlowFilesForRelationship(proc.REL_SUCCESS.getName());
+        result.get(0).assertAttributeEquals("from-content", "test content");
+    }
+    
+    @Test
+    public void test_onTriggerX_groovy() throws Exception {
+        runner.setProperty(proc.SCRIPT_FILE, TEST_RESOURCE_LOCATION+"test_onTriggerX.groovy");
+        runner.setProperty(proc.REQUIRE_FLOW, "true");
+        //runner.setProperty(proc.FAIL_STRATEGY, "rollback");
+        runner.assertValid();
+        
+        runner.enqueue("test content".getBytes(StandardCharsets.UTF_8));
+        runner.run();
+        runner.assertAllFlowFilesTransferred(proc.REL_SUCCESS.getName(), 1);
+        final List<MockFlowFile> result = runner.getFlowFilesForRelationship(proc.REL_SUCCESS.getName());
+        result.get(0).assertAttributeEquals("from-content", "test content");
+    }
+    
+    @Test
+    public void test_onTrigger_changeContent_groovy() throws Exception {
+        runner.setProperty(proc.SCRIPT_FILE, TEST_RESOURCE_LOCATION+"test_onTrigger_changeContent.groovy");
+        runner.setProperty(proc.REQUIRE_FLOW, "false");
+        //runner.setProperty(proc.FAIL_STRATEGY, "rollback");
+        runner.assertValid();
+        
+        runner.enqueue(TEST_CSV_DATA.getBytes(StandardCharsets.UTF_8));
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(proc.REL_SUCCESS.getName(), 1);
+        final List<MockFlowFile> result = runner.getFlowFilesForRelationship(proc.REL_SUCCESS.getName());
+        MockFlowFile resultFile = result.get(0);
+        resultFile.assertAttributeEquals("selected.columns", "first,last");
+        resultFile.assertContentEquals("Marlene Shaw\nTodd Graham\n");
+    }
+    
+    @Test
+    public void test_onTrigger_changeContentX_groovy() throws Exception {
+        runner.setProperty(proc.SCRIPT_FILE, TEST_RESOURCE_LOCATION+"test_onTrigger_changeContentX.groovy");
+        runner.setProperty(proc.REQUIRE_FLOW, "true");
+        //runner.setProperty(proc.FAIL_STRATEGY, "rollback");
+        runner.assertValid();
+        
+        runner.enqueue(TEST_CSV_DATA.getBytes(StandardCharsets.UTF_8));
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(proc.REL_SUCCESS.getName(), 1);
+        final List<MockFlowFile> result = runner.getFlowFilesForRelationship(proc.REL_SUCCESS.getName());
+        MockFlowFile resultFile = result.get(0);
+        resultFile.assertAttributeEquals("selected.columns", "first,last");
+        resultFile.assertContentEquals("Marlene Shaw\nTodd Graham\n");
+    }
+    
     
 }
