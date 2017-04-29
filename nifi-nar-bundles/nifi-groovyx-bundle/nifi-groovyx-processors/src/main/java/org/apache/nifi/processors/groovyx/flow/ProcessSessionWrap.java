@@ -188,18 +188,27 @@ public class ProcessSessionWrap implements ProcessSession {
     }
 
     /**
-     * drops all files except planned to pass into failure
+     * transfers all input files to relationship and drops other files.
+     * @param r where to transfer flow files, when null then transfers to input with penalize.
+     * @param t the cause why we do this transfer, when relationship specified then additional properties populated: ERROR_MESSAGE and ERROR_STACKTRACE.
      */
-    public void revertToFailure(Relationship r, Throwable t) {
+    public void transferAllReceived(Relationship r, Throwable t) {
         for (FlowFile f : toDrop.values()) {
             s.remove(f);
         }
         String errorMessage = Throwables.getMessage(t, null, 950);
         String stackTrace = Throwables.stringStackTrace(t);
         for (FlowFile f : toFail) {
-            f = s.putAttribute(f, ERROR_MESSAGE, errorMessage);
-            f = s.putAttribute(f, ERROR_STACKTRACE, stackTrace);
-            s.transfer(f, r);
+            if (t!=null && r!=null) {
+                f = s.putAttribute(f, ERROR_MESSAGE, errorMessage);
+                f = s.putAttribute(f, ERROR_STACKTRACE, stackTrace);
+            }
+            if (r!=null) {
+	            s.transfer(f, r);
+            } else {
+                f = s.penalize(f);
+                s.transfer(f);
+            }
         }
         s.commit();
         onClear();

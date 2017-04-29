@@ -21,6 +21,7 @@ import java.lang.reflect.Method;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -51,11 +52,17 @@ import org.codehaus.groovy.runtime.StackTraceUtils;
 
 import org.apache.nifi.processors.groovyx.sql.OSql;
 import org.apache.nifi.processors.groovyx.util.Files;
+import org.apache.nifi.processors.groovyx.util.Validators;
 import org.apache.nifi.processors.groovyx.flow.ProcessSessionWrap;
 
 import groovy.lang.GroovyShell;
 import groovy.lang.Script;
 import groovy.sql.Sql;
+
+import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.Validator;
+import org.apache.nifi.components.ValidationContext;
+
 
 @EventDriven @Tags({ "script", "groovy", "groovyx", "extended" }) @CapabilityDescription(
         "Experimental Extended Groovy script processor. The script is responsible for " + "handling the incoming flow file (transfer to SUCCESS or remove, e.g.) as well as any flow files created by "
@@ -69,7 +76,8 @@ public class ExecuteGroovyScript extends AbstractProcessor {
             + "import org.apache.nifi.processor.util.*;" + "import org.apache.nifi.processors.script.*;" + "import org.apache.nifi.logging.ComponentLog;";
 
     public static final PropertyDescriptor SCRIPT_FILE = new PropertyDescriptor.Builder().name("Script File").required(false)
-            .description("Path to script file to execute. Only one of Script File or Script Body may be used").addValidator(new StandardValidators.FileExistsValidator(true))
+            .description("Path to script file to execute. Only one of Script File or Script Body may be used")
+            .addValidator(Validators.createFileExistsAndReadableValidator())
             .expressionLanguageSupported(true).build();
 
     public static final PropertyDescriptor SCRIPT_BODY = new PropertyDescriptor.Builder().name("Script Body").required(false)
@@ -103,7 +111,8 @@ public class ExecuteGroovyScript extends AbstractProcessor {
     Class<Script> compiled = null;
     long scriptLastModified = 0;
 
-    @Override protected void init(final ProcessorInitializationContext context) {
+    @Override 
+    protected void init(final ProcessorInitializationContext context) {
         List<PropertyDescriptor> descriptors = new ArrayList<PropertyDescriptor>();
         descriptors.add(SCRIPT_FILE);
         descriptors.add(SCRIPT_BODY);
@@ -119,11 +128,13 @@ public class ExecuteGroovyScript extends AbstractProcessor {
 
     }
 
-    @Override public Set<Relationship> getRelationships() {
+    @Override 
+    public Set<Relationship> getRelationships() {
         return relationships;
     }
 
-    @Override public final List<PropertyDescriptor> getSupportedPropertyDescriptors() {
+    @Override 
+    public final List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return descriptors;
     }
 
@@ -145,8 +156,32 @@ public class ExecuteGroovyScript extends AbstractProcessor {
             }
         }
     }
+    
+    /**
+     * Allows subclasses to perform their own validation on the already set
+     * properties. Since each property is validated as it is set this allows
+     * validation of groups of properties together. Default return is an empty
+     * set.
+     *
+     * This method will be called only when it has been determined that all
+     * property values are valid according to their corresponding
+     * PropertyDescriptor's validators.
+     * Let's compile script at this point.
+     *
+     * @param validationContext provides a mechanism for obtaining externally
+     * managed values, such as property values and supplies convenience methods
+     * for operating on those values
+     *
+     * @return Collection of ValidationResult objects that will be added to any
+     * other validation findings - may be null
+     */
+    protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
+        return Collections.emptySet();
+    }
+    
 
-    @OnStopped public void onStopped(final ProcessContext context) {
+    @OnStopped 
+    public void onStopped(final ProcessContext context) {
         try {
             callScriptStatic("onStop", context);
         } catch (Throwable t) {
@@ -164,7 +199,8 @@ public class ExecuteGroovyScript extends AbstractProcessor {
      *
      * @param context the context in which to perform the setup operations
      */
-    @OnScheduled public void onScheduled(final ProcessContext context) {
+    @OnScheduled 
+    public void onScheduled(final ProcessContext context) {
         GroovyMethods.init();
         String scriptPath = context.getProperty(SCRIPT_FILE).evaluateAttributeExpressions().getValue();
         scriptBody = context.getProperty(SCRIPT_BODY).getValue();
@@ -284,14 +320,17 @@ public class ExecuteGroovyScript extends AbstractProcessor {
             }
         }
     }
+    
 
-    @Override public void onTrigger(final ProcessContext context, final ProcessSession _session) throws ProcessException {
+    @Override
+    public void onTrigger(final ProcessContext context, final ProcessSession _session) throws ProcessException {
         String requireFlow = context.getProperty(REQUIRE_FLOW).getValue();
         boolean toFailureOnError = VALID_FAIL_STRATEGY[1].equals(context.getProperty(FAIL_STRATEGY).getValue());
+        //create wrapped session to control list of newly created and getted files from this session.
+        //so transfer original input to failure will be possible
         ProcessSessionWrap session = new ProcessSessionWrap(_session, toFailureOnError);
 
         FlowFile flowFile = null;
-        boolean autocommit = true;
 
         if ("true".equals(requireFlow)) {
             flowFile = session.get();
@@ -305,7 +344,8 @@ public class ExecuteGroovyScript extends AbstractProcessor {
         }
 
         HashMap CTL = new HashMap() {
-            @Override public Object get(Object key) {
+            @Override 
+            public Object get(Object key) {
                 if (!containsKey(key)) {
                     throw new RuntimeException("The `CTL." + key + "` not defined in processor properties");
                 }
@@ -314,7 +354,7 @@ public class ExecuteGroovyScript extends AbstractProcessor {
         };
 
         try {
-            Script script = getGroovyScript();
+            Script script = getGroovyScript(); //compilation must be moved to validation
             Map bindings = script.getBinding().getVariables();
 
             bindings.clear();
@@ -352,13 +392,13 @@ public class ExecuteGroovyScript extends AbstractProcessor {
             onCommitCTL(CTL);
             session.commit();
         } catch (Throwable t) {
+            getLogger().error(t.toString(), t);
             onFailCTL(CTL);
             if (toFailureOnError) {
-                getLogger().error(t.toString(), t);
-                session.revertToFailure(REL_FAILURE, StackTraceUtils.deepSanitize(t));
+            	//transfer all received to failure with two new attributes: ERROR_MESSAGE and ERROR_STACKTRACE.
+                session.transferAllReceived(REL_FAILURE, StackTraceUtils.deepSanitize(t));
             } else {
                 session.rollback(true);
-                throw new ProcessException(t);
             }
         } finally {
             onFinitCTL(CTL);
