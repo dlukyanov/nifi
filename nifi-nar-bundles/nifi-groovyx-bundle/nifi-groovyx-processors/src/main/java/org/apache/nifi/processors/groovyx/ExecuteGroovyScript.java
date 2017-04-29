@@ -58,10 +58,11 @@ import groovy.lang.Script;
 import groovy.sql.Sql;
 
 @EventDriven @Tags({ "script", "groovy", "groovyx", "extended" }) @CapabilityDescription(
-        "Extended Groovy script processor. The script is responsible for " + "handling the incoming flow file (transfer to SUCCESS or remove, e.g.) as well as any flow files created by "
+        "Experimental Extended Groovy script processor. The script is responsible for " + "handling the incoming flow file (transfer to SUCCESS or remove, e.g.) as well as any flow files created by "
                 + "the script. If the handling is incomplete or incorrect, the session will be rolled back.") @SeeAlso({}) @DynamicProperty(name = "A script engine property to update", value = "The value to set it to", supportsExpressionLanguage = true, description =
         "Updates a script engine property specified by the Dynamic Property's key with the value "
-                + "specified by the Dynamic Property's value. Use `CTL.` to access any controller services.") public class Groovyx extends AbstractProcessor {
+                + "specified by the Dynamic Property's value. Use `CTL.` to access any controller services.") 
+public class ExecuteGroovyScript extends AbstractProcessor {
 
     private static final String PRELOADS = "import org.apache.nifi.components.*;" + "import org.apache.nifi.flowfile.FlowFile;" + "import org.apache.nifi.processor.*;"
             + "import org.apache.nifi.processor.FlowFileFilter.FlowFileFilterResult;" + "import org.apache.nifi.processor.exception.*;" + "import org.apache.nifi.processor.io.*;"

@@ -36,10 +36,10 @@ import java.util.List;
 
 import static org.junit.Assert.assertNotNull;
 
-public class GroovyxTest {
+public class ExecuteGroovyScriptTest {
 
     protected TestRunner runner;
-    protected Groovyx proc;
+    protected ExecuteGroovyScript proc;
     public final String TEST_RESOURCE_LOCATION = "target/test/resources/groovy/";
     private final String TEST_CSV_DATA = "gender,title,first,last\n"
             + "female,miss,marlene,shaw\n"
@@ -57,7 +57,7 @@ public class GroovyxTest {
     
     @Before
     public void setup() throws Exception {
-        proc = new Groovyx();
+        proc = new ExecuteGroovyScript();
         MockProcessContext context = new MockProcessContext(proc);
         MockProcessorInitializationContext initContext = new MockProcessorInitializationContext(proc, context);
         proc.initialize(initContext);
