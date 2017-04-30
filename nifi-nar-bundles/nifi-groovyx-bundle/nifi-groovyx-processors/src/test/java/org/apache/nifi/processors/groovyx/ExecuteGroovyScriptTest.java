@@ -30,8 +30,11 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.FixMethodOrder;
+import org.junit.runners.MethodSorters;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 
 import java.nio.file.Files;
@@ -50,10 +53,17 @@ import static org.junit.Assert.assertNotNull;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.dbcp.DBCPService;
 
+import org.codehaus.groovy.runtime.ResourceGroovyMethods;
+
+import groovy.json.JsonSlurper;
+import groovy.json.JsonOutput;
+
+@FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class ExecuteGroovyScriptTest {
     private final static String DB_LOCATION = "target/db";
 
     protected TestRunner runner;
+    protected static DBCPService dbcp = null;  //to make single initialization
     protected ExecuteGroovyScript proc;
     public final String TEST_RESOURCE_LOCATION = "target/test/resources/groovy/";
     private final String TEST_CSV_DATA = "gender,title,first,last\n"
@@ -87,11 +97,25 @@ public class ExecuteGroovyScriptTest {
         // remove previous test database, if any
         final File dbLocation = new File(DB_LOCATION);
         FileUtils.deleteQuietly(dbLocation);
+        //insert some test data
+    	System.out.println("db connection set");
+    	dbcp = new DBCPServiceSimpleImpl();
+		Connection con = dbcp.getConnection();
+		Statement stmt = con.createStatement();
+		try{
+			stmt.execute("drop table mytable");
+		}catch(Exception e){}
+		stmt.execute("create table mytable (id integer not null, name varchar(100), scale float, created timestamp, data blob)");
+		stmt.execute("insert into mytable (id, name, scale, created, data) VALUES (0, 'Joe Smith', 1.0, '1962-09-23 03:23:34.234', null)");
+		stmt.execute("insert into mytable (id, name, scale, created, data) VALUES (1, 'Carrie Jones', 5.1, '2000-01-01 03:23:34.234', null)");
+		stmt.close();
+		con.commit();
+		con.close();
     }
     
     @Before
     public void setup() throws Exception {
-        try{
+    	//init processor
         proc = new ExecuteGroovyScript();
         MockProcessContext context = new MockProcessContext(proc);
         MockProcessorInitializationContext initContext = new MockProcessorInitializationContext(proc, context);
@@ -99,23 +123,8 @@ public class ExecuteGroovyScriptTest {
         
         assertNotNull(proc.getSupportedPropertyDescriptors());
         runner = TestRunners.newTestRunner(proc);
-        //insert come test data
-        final DBCPService dbcp = new DBCPServiceSimpleImpl();
-        final HashMap<String, String> dbcpProperties = new HashMap<>();
-        runner.addControllerService("dbcp", dbcp, dbcpProperties);
-        Connection con = ((DBCPService) runner.getControllerService("dbcp"))
-            .getConnection();
-        Statement stmt = con.createStatement();
-        try{
-            stmt.execute("drop table mytable");
-        }catch(Exception e){}
-        stmt.execute("create table mytable (id integer not null, name varchar(100), scale float, created timestamp, data blob)");
-        stmt.execute("insert into mytable (id, name, scale, created, data) VALUES (0, 'Joe Smith', 1.0, '1962-09-23 03:23:34.234', null)");
-        stmt.execute("insert into mytable (id, name, scale, created, data) VALUES (1, 'Carrie Jones', 5.1, '2000-01-01 03:23:34.234', null)");
-        stmt.close();
-        con.commit();
-        con.close();
-        }catch(Exception e){e.printStackTrace(); throw e;}
+		runner.addControllerService("dbcp", dbcp, new HashMap<>());
+        runner.enableControllerService(dbcp);
     }
     /**
      * Tests a script that reads content of the flowfile content and stores the value in an attribute of the outgoing flowfile.
@@ -212,26 +221,101 @@ public class ExecuteGroovyScriptTest {
         resultFile.assertContentEquals("Test");
     }
     
-    //@Test
-    public void test_sql_in_script_groovy() throws Exception {
-        runner.setProperty(proc.SCRIPT_FILE, TEST_RESOURCE_LOCATION+"test_sql_in_script.groovy");
+    
+    @Test
+    public void test_good_script() throws Exception {
+        runner.setProperty(proc.SCRIPT_BODY, " REL_SUCCESS << flowFile ");
+        runner.setProperty(proc.REQUIRE_FLOW, "true");
+        runner.assertValid();
+    }
+    
+    @Test
+    public void test_bad_script() throws Exception {
+        runner.setProperty(proc.SCRIPT_BODY, " { { ");
+        runner.setProperty(proc.REQUIRE_FLOW, "true");
+        runner.assertNotValid();
+    }
+    
+    @Test
+    public void test_sql_01_select() throws Exception {
+        runner.setProperty(proc.SCRIPT_FILE, TEST_RESOURCE_LOCATION+"test_sql_01_select.groovy");
         runner.setProperty(proc.REQUIRE_FLOW, "false");
-        //runner.setProperty(proc.FAIL_STRATEGY, "rollback");
+        runner.setProperty("CTL.sql", "dbcp");
         runner.assertValid();
         
-        //runner.enqueue(TEST_CSV_DATA.getBytes(StandardCharsets.UTF_8));
         runner.run();
-
+        
         runner.assertAllFlowFilesTransferred(proc.REL_SUCCESS.getName(), 1);
         final List<MockFlowFile> result = runner.getFlowFilesForRelationship(proc.REL_SUCCESS.getName());
         MockFlowFile resultFile = result.get(0);
-        //resultFile.assertAttributeEquals("selected.columns", "first,last");
-        resultFile.assertContentEquals("Test");
+        resultFile.assertAttributeEquals("filename", "test.txt");
+        resultFile.assertContentEquals("Joe Smith\nCarrie Jones\n","UTF-8");
     }
     
+    @Test
+    public void test_sql_02_blob_write() throws Exception {
+        runner.setProperty(proc.SCRIPT_FILE, TEST_RESOURCE_LOCATION+"test_sql_02_blob_write.groovy");
+        runner.setProperty(proc.REQUIRE_FLOW, "true");
+        runner.setProperty("CTL.sql", "dbcp");
+        //runner.setProperty("ID", "0");
+        runner.assertValid();
+        
+        HashMap<String, String> attrs = new HashMap<String, String>();
+        attrs.put("ID","0");
+        runner.enqueue(TEST_CSV_DATA.getBytes(StandardCharsets.UTF_8), attrs);
+        runner.run();
+        
+        runner.assertAllFlowFilesTransferred(proc.REL_SUCCESS.getName(), 1);
+        final List<MockFlowFile> result = runner.getFlowFilesForRelationship(proc.REL_SUCCESS.getName());
+        MockFlowFile resultFile = result.get(0);
+        resultFile.assertContentEquals(TEST_CSV_DATA.getBytes(StandardCharsets.UTF_8));
+        //let's check database content in next text case
+        
+    }
+    
+    @Test
+    public void test_sql_03_blob_read() throws Exception {
+    	//read blob from database written at previous step and write to flow file
+        runner.setProperty(proc.SCRIPT_FILE, TEST_RESOURCE_LOCATION+"test_sql_03_blob_read.groovy");
+        runner.setProperty(proc.REQUIRE_FLOW, "false");
+        runner.setProperty("CTL.sql", "dbcp");
+        runner.setProperty("ID", "0");
+        runner.setValidateExpressionUsage(false);
+        runner.assertValid();
+        
+        runner.run();
+        
+        runner.assertAllFlowFilesTransferred(proc.REL_SUCCESS.getName(), 1);
+        final List<MockFlowFile> result = runner.getFlowFilesForRelationship(proc.REL_SUCCESS.getName());
+        MockFlowFile resultFile = result.get(0);
+        resultFile.assertContentEquals(TEST_CSV_DATA.getBytes(StandardCharsets.UTF_8));
+    }
+
+    @Test
+    public void test_sql_04_insert_and_json() throws Exception {
+    	//read blob from database written at previous step and write to flow file
+        runner.setProperty(proc.SCRIPT_FILE, TEST_RESOURCE_LOCATION+"test_sql_04_insert_and_json.groovy");
+        runner.setProperty(proc.REQUIRE_FLOW, "true");
+        runner.setProperty("CTL.sql", "dbcp");
+        runner.setValidateExpressionUsage(false);
+        runner.assertValid();
+        
+        runner.enqueue(new FileInputStream(TEST_RESOURCE_LOCATION+"test_sql_04_insert_and_json.json"));
+        runner.run();
+        
+        runner.assertAllFlowFilesTransferred(proc.REL_SUCCESS.getName(), 3);  //number of inserted rows
+        final List<MockFlowFile> result = runner.getFlowFilesForRelationship(proc.REL_SUCCESS.getName());
+        MockFlowFile resultFile = result.get(0);
+        List<String> lines = ResourceGroovyMethods.readLines( new File(TEST_RESOURCE_LOCATION+"test_sql_04_insert_and_json.json"), "UTF-8");
+        //pass through to-fron json before compare
+        resultFile.assertContentEquals( JsonOutput.toJson( new JsonSlurper().parseText(lines.get(1)) ) ,"UTF-8");
+    }
+
+
+        
     
     
-    private class DBCPServiceSimpleImpl extends AbstractControllerService implements DBCPService {
+    private static class DBCPServiceSimpleImpl extends AbstractControllerService implements DBCPService {
 
         @Override
         public String getIdentifier() {

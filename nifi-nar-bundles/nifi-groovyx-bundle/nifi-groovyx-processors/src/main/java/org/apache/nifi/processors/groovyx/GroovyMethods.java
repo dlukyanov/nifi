@@ -96,19 +96,15 @@ class GroovyMethods {
                 if (object instanceof SessionFile) {
                     if ("write".equals(methodName)) {
                         if (args.length == 1 && args[0] instanceof Closure) {
-                            this._write((SessionFile) object, (Closure) args[0]);
-                            return null;
+                            return this._write((SessionFile) object, (Closure) args[0]);
                         } else if (args.length == 2) {
                             if (args[0] instanceof String) {
                                 if (args[1] instanceof Closure) {
-                                    this._write((SessionFile) object, (String) args[0], (Closure) args[1]);
-                                    return null;
+                                    return this._write((SessionFile) object, (String) args[0], (Closure) args[1]);
                                 } else if (args[1] instanceof CharSequence) {
-                                    this._write((SessionFile) object, (String) args[0], (CharSequence) args[1]);
-                                    return null;
+                                    return this._write((SessionFile) object, (String) args[0], (CharSequence) args[1]);
                                 } else if (args[1] instanceof Writable) {
-                                    this._write((SessionFile) object, (String) args[0], (Writable) args[1]);
-                                    return null;
+                                    return this._write((SessionFile) object, (String) args[0], (Writable) args[1]);
                                 }
                             }
                         }
@@ -117,7 +113,7 @@ class GroovyMethods {
                 return super.invokeMethod(object, methodName, args);
             }
 
-            private void _write(SessionFile f, String charset, Closure c) {
+            private SessionFile _write(SessionFile f, String charset, Closure c) {
                 f.write(new OutputStreamCallback() {
                     public void process(OutputStream out) throws IOException {
                         Writer w = new OutputStreamWriter(out, charset);
@@ -126,9 +122,10 @@ class GroovyMethods {
                         w.close();
                     }
                 });
+                return f;
             }
 
-            private void _write(SessionFile f, String charset, CharSequence c) {
+            private SessionFile _write(SessionFile f, String charset, CharSequence c) {
                 f.write(new OutputStreamCallback() {
                     public void process(OutputStream out) throws IOException {
                         Writer w = new OutputStreamWriter(out, charset);
@@ -137,9 +134,10 @@ class GroovyMethods {
                         w.close();
                     }
                 });
+                return f;
             }
 
-            private void _write(SessionFile f, String charset, Writable c) {
+            private SessionFile _write(SessionFile f, String charset, Writable c) {
                 f.write(new OutputStreamCallback() {
                     public void process(OutputStream out) throws IOException {
                         Writer w = new OutputStreamWriter(out, charset);
@@ -148,9 +146,10 @@ class GroovyMethods {
                         w.close();
                     }
                 });
+                return f;
             }
 
-            private void _write(SessionFile f, Closure c) {
+            private SessionFile _write(SessionFile f, Closure c) {
                 if (c.getMaximumNumberOfParameters() == 1) {
                     f.write(new OutputStreamCallback() {
                         public void process(OutputStream out) throws IOException {
@@ -164,6 +163,7 @@ class GroovyMethods {
                         }
                     });
                 }
+                return f;
             }
 
         });

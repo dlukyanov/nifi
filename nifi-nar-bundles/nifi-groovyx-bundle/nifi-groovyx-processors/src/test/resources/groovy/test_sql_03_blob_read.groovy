@@ -15,24 +15,16 @@
  * limitations under the License.
  */
 
-/*
-the original script taken from this article
-http://funnifi.blogspot.com/2016/04/sql-in-nifi-with-executescript.html
-and refactored for ExecuteGroovyScript 
-*/ 
+import groovy.sql.Sql
 
-//assume you defined CTL.conn property linked to desired database connection pool
 def flowFile = session.create()
-
-//flowfile.write defined here: org\apache\nifi\processors\groovyx\GroovyMethods.java 
-flowFile.write{out -> 
-  out.withWriter("UTF-8"){ it.append("Test") }
-  /*
-  CTL.conn.rows('select * from users').eachWithIndex { row, idx ->
-    if(idx == 0) { out.write(((row.keySet() as List).join(',') + "\n").getBytes()) }
-    out.write((row.values().join(',') + "\n").getBytes())
-  }
-  */
+//read blob into flowFile content
+flowFile.write{out->
+	def row = CTL.sql.firstRow("select data from mytable where id = ${ ID.value as Long }")
+	assert row
+	println "got row from the  db: $row"
+	out << row.data.getBinaryStream()
 }
-flowFile.'filename' = 'test.txt'
+
+//transfer new file to output
 REL_SUCCESS << flowFile
