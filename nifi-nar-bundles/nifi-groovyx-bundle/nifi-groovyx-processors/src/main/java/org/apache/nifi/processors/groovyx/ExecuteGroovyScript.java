@@ -429,7 +429,7 @@ public class ExecuteGroovyScript extends AbstractProcessor {
             onFailCTL(CTL);
             if (toFailureOnError) {
                 //transfer all received to failure with two new attributes: ERROR_MESSAGE and ERROR_STACKTRACE.
-                session.transferAllReceived(REL_FAILURE, StackTraceUtils.deepSanitize(t));
+                session.revertReceivedTo(REL_FAILURE, StackTraceUtils.deepSanitize(t));
             } else {
                 session.rollback(true);
             }

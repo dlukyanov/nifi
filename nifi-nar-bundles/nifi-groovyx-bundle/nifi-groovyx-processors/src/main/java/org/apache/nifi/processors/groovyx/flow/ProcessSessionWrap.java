@@ -45,7 +45,9 @@ import org.apache.nifi.processors.groovyx.util.Throwables;
 
 /**
  * wrapped session that collects all created/modified files if created with special flag
- * and able to execute method revertToFailure(Relationship r, Throwable t)
+ * and able to execute method revertReceivedTo(Relationship r, Throwable t)
+ * it will be good to create functionality with created file list and received file list in a standard session.
+ * Those file lists will simplify error management.
  */
 public class ProcessSessionWrap implements ProcessSession {
 
@@ -192,7 +194,7 @@ public class ProcessSessionWrap implements ProcessSession {
      * @param r where to transfer flow files, when null then transfers to input with penalize.
      * @param t the cause why we do this transfer, when relationship specified then additional properties populated: ERROR_MESSAGE and ERROR_STACKTRACE.
      */
-    public void transferAllReceived(Relationship r, Throwable t) {
+    public void revertReceivedTo(Relationship r, Throwable t) {
         for (FlowFile f : toDrop.values()) {
             s.remove(f);
         }
