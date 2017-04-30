@@ -26,10 +26,13 @@ def flowFile = session.create()
 
 //flowfile.write defined here: org\apache\nifi\processors\groovyx\GroovyMethods.java 
 flowFile.write{out -> 
+  out.withWriter("UTF-8"){ it.append("Test") }
+  /*
   CTL.conn.rows('select * from users').eachWithIndex { row, idx ->
     if(idx == 0) { out.write(((row.keySet() as List).join(',') + "\n").getBytes()) }
     out.write((row.values().join(',') + "\n").getBytes())
   }
+  */
 }
-flowFile.'filename' = filename.value
+flowFile.'filename' = 'test.txt'
 REL_SUCCESS << flowFile

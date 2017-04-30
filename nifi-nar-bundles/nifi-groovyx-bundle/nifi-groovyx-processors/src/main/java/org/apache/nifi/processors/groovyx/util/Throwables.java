@@ -34,7 +34,7 @@ public class Throwables {
         return sw.toString();
     }
 	
-	/*================> User Input Format And Parse <==================*/
+    /*================> User Input Format And Parse <==================*/
 
     /**
      * returns error message with selected line from stacktrace:
@@ -162,10 +162,10 @@ public class Throwables {
             t = e.getCause();
         } else if (e.getCause() != null && e.getClass().getName().equals(e.getCause().getClass().getName())) {
             t = e.getCause();
-		/*
-		}else if(e instanceof UserError){
-			return e;
-		*/
+        /*
+        }else if(e instanceof UserError){
+            return e;
+        */
         } else {
             return e;
         }

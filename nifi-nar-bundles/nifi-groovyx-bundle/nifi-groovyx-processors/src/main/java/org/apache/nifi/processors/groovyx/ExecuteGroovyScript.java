@@ -70,6 +70,7 @@ import org.apache.nifi.components.ValidationContext;
         "Updates a script engine property specified by the Dynamic Property's key with the value "
                 + "specified by the Dynamic Property's value. Use `CTL.` to access any controller services.") 
 public class ExecuteGroovyScript extends AbstractProcessor {
+    public static final String GROOVY_CLASSPATH = "${groovy.classes.path}";
 
     private static final String PRELOADS = "import org.apache.nifi.components.*;" + "import org.apache.nifi.flowfile.FlowFile;" + "import org.apache.nifi.processor.*;"
             + "import org.apache.nifi.processor.FlowFileFilter.FlowFileFilterResult;" + "import org.apache.nifi.processor.exception.*;" + "import org.apache.nifi.processor.io.*;"
@@ -104,12 +105,15 @@ public class ExecuteGroovyScript extends AbstractProcessor {
 
     private List<PropertyDescriptor> descriptors;
     private Set<Relationship> relationships;
-
-    GroovyShell shell = null; //new GroovyShell();
-    File scriptFile = null;
-    String scriptBody = null;
-    Class<Script> compiled = null;
-    long scriptLastModified = 0;
+    //parameters evaluated on Start or on Validate
+    File scriptFile = null;  //SCRIPT_FILE
+    String scriptBody = null; //SCRIPT_BODY
+    String addClasspath = null; //ADD_CLASSPATH
+    String groovyClasspath = null; //evaluated from GROOVY_CLASSPATH = ${groovy.classes.path} global property
+    //compiled script
+    volatile GroovyShell shell = null; //new GroovyShell();
+    volatile Class<Script> compiled = null;  //compiled script
+    volatile long scriptLastModified = 0;  //last scriptFile modification to check if recompile required 
 
     @Override 
     protected void init(final ProcessorInitializationContext context) {
@@ -137,6 +141,11 @@ public class ExecuteGroovyScript extends AbstractProcessor {
     public final List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return descriptors;
     }
+    
+    private File asFile(String f){
+        if(f==null || f.length()==0)return null;
+        return new File(f);
+    }
 
     private void callScriptStatic(String method, final ProcessContext context) throws IllegalAccessException, java.lang.reflect.InvocationTargetException {
         if (compiled != null) {
@@ -158,15 +167,7 @@ public class ExecuteGroovyScript extends AbstractProcessor {
     }
     
     /**
-     * Allows subclasses to perform their own validation on the already set
-     * properties. Since each property is validated as it is set this allows
-     * validation of groups of properties together. Default return is an empty
-     * set.
-     *
-     * This method will be called only when it has been determined that all
-     * property values are valid according to their corresponding
-     * PropertyDescriptor's validators.
-     * Let's compile script at this point.
+     * Let's do validation by script compile at this point.
      *
      * @param validationContext provides a mechanism for obtaining externally
      * managed values, such as property values and supplies convenience methods
@@ -175,22 +176,43 @@ public class ExecuteGroovyScript extends AbstractProcessor {
      * @return Collection of ValidationResult objects that will be added to any
      * other validation findings - may be null
      */
-    protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
-        return Collections.emptySet();
+    protected Collection<ValidationResult> customValidate(final ValidationContext context) {
+        this.scriptFile = asFile( context.getProperty(SCRIPT_FILE).evaluateAttributeExpressions().getValue() );  //SCRIPT_FILE
+        this.scriptBody = context.getProperty(SCRIPT_BODY).getValue(); //SCRIPT_BODY
+        this.addClasspath = context.getProperty(ADD_CLASSPATH).evaluateAttributeExpressions().getValue(); //ADD_CLASSPATH
+        this.groovyClasspath = context.newPropertyValue(GROOVY_CLASSPATH).evaluateAttributeExpressions().getValue(); //evaluated from ${groovy.classes.path} global property
+        
+        final Collection<ValidationResult> results = new HashSet<>();
+        try {
+            getGroovyScript();
+        } catch (Throwable t) {
+            results.add(new ValidationResult.Builder()
+                .subject("GroovyScript")
+                .input( this.scriptFile!=null ? this.scriptFile.toString() : null )
+                .valid(false)
+                .explanation( t.toString() )
+                .build()
+            );
+        }
+        return results;
     }
     
-
-    @OnStopped 
-    public void onStopped(final ProcessContext context) {
-        try {
-            callScriptStatic("onStop", context);
-        } catch (Throwable t) {
-            throw new ProcessException("Failed to finalize groovy script:\n" + t, t);
-        }
-        //reset compiled and shell on stop
-        shell = null;
-        compiled = null;
-        scriptLastModified = 0;
+    /**
+     * Hook method allowing subclasses to eagerly react to a configuration
+     * change for the given property descriptor. As an alternative to using this
+     * method a processor may simply get the latest value whenever it needs it
+     * and if necessary lazily evaluate it.
+     *
+     * @param descriptor of the modified property
+     * @param oldValue non-null property value (previous)
+     * @param newValue the new property value or if null indicates the property
+     * was removed
+     */
+    @Override
+    public void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
+        this.shell = null;
+        this.compiled = null;
+        this.scriptLastModified = 0;
     }
 
     /**
@@ -201,54 +223,66 @@ public class ExecuteGroovyScript extends AbstractProcessor {
      */
     @OnScheduled 
     public void onScheduled(final ProcessContext context) {
-        GroovyMethods.init();
-        String scriptPath = context.getProperty(SCRIPT_FILE).evaluateAttributeExpressions().getValue();
-        scriptBody = context.getProperty(SCRIPT_BODY).getValue();
-        String addClasspath = context.getProperty(ADD_CLASSPATH).evaluateAttributeExpressions().getValue();
-
-        if (scriptBody != null && scriptPath != null) {
-            throw new ProcessException("Only one parameter accepted: `" + SCRIPT_BODY.getDisplayName() + "` or `" + SCRIPT_FILE.getDisplayName() + "`");
-        }
-        if (scriptBody == null && scriptPath == null) {
-            throw new ProcessException("At least one parameter required: `" + SCRIPT_BODY.getDisplayName() + "` or `" + SCRIPT_FILE.getDisplayName() + "`");
-        }
+        this.scriptFile = asFile( context.getProperty(SCRIPT_FILE).evaluateAttributeExpressions().getValue() );  //SCRIPT_FILE
+        this.scriptBody = context.getProperty(SCRIPT_BODY).getValue(); //SCRIPT_BODY
+        this.addClasspath = context.getProperty(ADD_CLASSPATH).evaluateAttributeExpressions().getValue(); //ADD_CLASSPATH
+        this.groovyClasspath = context.newPropertyValue(GROOVY_CLASSPATH).evaluateAttributeExpressions().getValue(); //evaluated from ${groovy.classes.path} global property
         try {
-            scriptFile = scriptPath == null ? null : new File(scriptPath);
-            CompilerConfiguration conf = new CompilerConfiguration();
-            conf.setDebug(true);
-            shell = new GroovyShell(conf);
-
-            if (addClasspath != null && addClasspath.length() > 0) {
-                for (File fcp : Files.listPathsFiles(addClasspath)) {
-                    shell.getClassLoader().addClasspath(fcp.toString());
-                }
-            }
-            //try to add classpath with groovy classes
-            String groovyPath = context.newPropertyValue("${groovy.classes.path}").evaluateAttributeExpressions().getValue();
-            if (groovyPath != null && groovyPath.length() > 0) {
-                shell.getClassLoader().addClasspath(groovyPath);
-            }
-            //clear compiled script and compile it again
-            compiled = null;
+            //compile if needed
             getGroovyScript();
         } catch (Throwable t) {
-            throw new ProcessException("Failed to initialize groovy engine:\n" + t, t);
+            getLogger().error("Load script failed: " + t);
+            throw new ProcessException("Load script failed: " + t, t);
         }
         try {
             callScriptStatic("onStart", context);
         } catch (Throwable t) {
-            throw new ProcessException("Failed to initialize groovy script:\n" + t, t);
+            getLogger().error("onStart failed: " + t);
+            throw new ProcessException("onStart failed: " + t, t);
         }
     }
-
-    Script getGroovyScript() throws Throwable {
-        Script script = null;
-        Class _compiled = compiled;
-        if (_compiled != null && scriptFile != null && scriptLastModified != scriptFile.lastModified() && System.currentTimeMillis() - scriptFile.lastModified() > 3000) {
-            System.out.println("Recompile " + _compiled);
-            _compiled = null;
+        
+    @OnStopped 
+    public void onStopped(final ProcessContext context) {
+        try {
+            callScriptStatic("onStop", context);
+        } catch (Throwable t) {
+            throw new ProcessException("Failed to finalize groovy script:\n" + t, t);
         }
-        if (_compiled == null) {
+        //reset of compiled script not needed here because we did it onPropertyModified
+    }
+
+    // used in validation and processing
+    Script getGroovyScript() throws Throwable {
+        GroovyMethods.init();
+        if (scriptBody != null && scriptFile != null) {
+            throw new ProcessException("Only one parameter accepted: `" + SCRIPT_BODY.getDisplayName() + "` or `" + SCRIPT_FILE.getDisplayName() + "`");
+        }
+        if (scriptBody == null && scriptFile == null) {
+            throw new ProcessException("At least one parameter required: `" + SCRIPT_BODY.getDisplayName() + "` or `" + SCRIPT_FILE.getDisplayName() + "`");
+        }
+        
+        if(shell==null){
+            CompilerConfiguration conf = new CompilerConfiguration();
+            conf.setDebug(true);
+            shell = new GroovyShell(conf);
+            if (addClasspath != null && addClasspath.length() > 0) {
+                for (File fcp : Files.listPathsFiles(addClasspath)) {
+                    if( !fcp.exists() ) throw new ProcessException("Path not found `" + fcp + "` for `" + ADD_CLASSPATH.getDisplayName() + "`");
+                    shell.getClassLoader().addClasspath(fcp.toString());
+                }
+            }
+            //try to add classpath with groovy classes
+            if (groovyClasspath != null && groovyClasspath.length() > 0) {
+                shell.getClassLoader().addClasspath(groovyClasspath);
+            }
+        }
+        Script script = null;
+        if (compiled != null && scriptFile != null && scriptLastModified != scriptFile.lastModified() && System.currentTimeMillis() - scriptFile.lastModified() > 3000) {
+            //force recompile if script file has been changed
+            compiled = null;
+        }
+        if (compiled == null) {
             String scriptName = null;
             String scriptText = null;
             if (scriptFile != null) {
@@ -260,17 +294,16 @@ public class ExecuteGroovyScript extends AbstractProcessor {
                 scriptText = scriptBody;
             }
             script = shell.parse(PRELOADS + scriptText, scriptName);
-            _compiled = script.getClass();
-            compiled = _compiled;
+            compiled = (Class<Script>)script.getClass();
         }
         if (script == null) {
-            script = (Script) _compiled.newInstance();
+            script = (Script) compiled.newInstance();
         }
         Thread.currentThread().setContextClassLoader(shell.getClassLoader());
         return script;
     }
 
-    //init
+    /** init controller services */
     private void onInitCTL(HashMap CTL) throws SQLException {
         for (Map.Entry e : (Set<Map.Entry>) CTL.entrySet()) {
             if (e.getValue() instanceof DBCPService) {
@@ -282,7 +315,7 @@ public class ExecuteGroovyScript extends AbstractProcessor {
         }
     }
 
-    //before commit
+    /** before commit controller services */
     private void onCommitCTL(HashMap CTL) throws SQLException {
         for (Map.Entry e : (Set<Map.Entry>) CTL.entrySet()) {
             if (e.getValue() instanceof OSql) {
@@ -292,7 +325,7 @@ public class ExecuteGroovyScript extends AbstractProcessor {
         }
     }
 
-    //finalize
+    /** finalize controller services */
     private void onFinitCTL(HashMap CTL) {
         for (Map.Entry e : (Set<Map.Entry>) CTL.entrySet()) {
             if (e.getValue() instanceof OSql) {
@@ -308,7 +341,7 @@ public class ExecuteGroovyScript extends AbstractProcessor {
         }
     }
 
-    //exception
+    /** exception controller services */
     private void onFailCTL(HashMap CTL) {
         for (Map.Entry e : (Set<Map.Entry>) CTL.entrySet()) {
             if (e.getValue() instanceof OSql) {
@@ -359,7 +392,7 @@ public class ExecuteGroovyScript extends AbstractProcessor {
 
             bindings.clear();
 
-            // Find the user-added properties and set them on the script
+            // Find the user-added properties and bind them for the script
             for (Map.Entry<PropertyDescriptor, String> property : context.getProperties().entrySet()) {
                 if (property.getKey().isDynamic()) {
                     if (property.getKey().getName().startsWith("CTL.")) {
@@ -395,7 +428,7 @@ public class ExecuteGroovyScript extends AbstractProcessor {
             getLogger().error(t.toString(), t);
             onFailCTL(CTL);
             if (toFailureOnError) {
-            	//transfer all received to failure with two new attributes: ERROR_MESSAGE and ERROR_STACKTRACE.
+                //transfer all received to failure with two new attributes: ERROR_MESSAGE and ERROR_STACKTRACE.
                 session.transferAllReceived(REL_FAILURE, StackTraceUtils.deepSanitize(t));
             } else {
                 session.rollback(true);

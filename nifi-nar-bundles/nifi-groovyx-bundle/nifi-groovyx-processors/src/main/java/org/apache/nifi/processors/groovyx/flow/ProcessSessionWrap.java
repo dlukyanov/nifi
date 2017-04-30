@@ -204,7 +204,7 @@ public class ProcessSessionWrap implements ProcessSession {
                 f = s.putAttribute(f, ERROR_STACKTRACE, stackTrace);
             }
             if (r!=null) {
-	            s.transfer(f, r);
+                s.transfer(f, r);
             } else {
                 f = s.penalize(f);
                 s.transfer(f);
