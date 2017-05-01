@@ -98,24 +98,23 @@ public class ExecuteGroovyScriptTest {
         final File dbLocation = new File(DB_LOCATION);
         FileUtils.deleteQuietly(dbLocation);
         //insert some test data
-    	System.out.println("db connection set");
-    	dbcp = new DBCPServiceSimpleImpl();
-		Connection con = dbcp.getConnection();
-		Statement stmt = con.createStatement();
-		try{
-			stmt.execute("drop table mytable");
-		}catch(Exception e){}
-		stmt.execute("create table mytable (id integer not null, name varchar(100), scale float, created timestamp, data blob)");
-		stmt.execute("insert into mytable (id, name, scale, created, data) VALUES (0, 'Joe Smith', 1.0, '1962-09-23 03:23:34.234', null)");
-		stmt.execute("insert into mytable (id, name, scale, created, data) VALUES (1, 'Carrie Jones', 5.1, '2000-01-01 03:23:34.234', null)");
-		stmt.close();
-		con.commit();
-		con.close();
+        dbcp = new DBCPServiceSimpleImpl();
+        Connection con = dbcp.getConnection();
+        Statement stmt = con.createStatement();
+        try{
+            stmt.execute("drop table mytable");
+        }catch(Exception e){}
+        stmt.execute("create table mytable (id integer not null, name varchar(100), scale float, created timestamp, data blob)");
+        stmt.execute("insert into mytable (id, name, scale, created, data) VALUES (0, 'Joe Smith', 1.0, '1962-09-23 03:23:34.234', null)");
+        stmt.execute("insert into mytable (id, name, scale, created, data) VALUES (1, 'Carrie Jones', 5.1, '2000-01-01 03:23:34.234', null)");
+        stmt.close();
+        con.commit();
+        con.close();
     }
     
     @Before
     public void setup() throws Exception {
-    	//init processor
+        //init processor
         proc = new ExecuteGroovyScript();
         MockProcessContext context = new MockProcessContext(proc);
         MockProcessorInitializationContext initContext = new MockProcessorInitializationContext(proc, context);
@@ -123,7 +122,7 @@ public class ExecuteGroovyScriptTest {
         
         assertNotNull(proc.getSupportedPropertyDescriptors());
         runner = TestRunners.newTestRunner(proc);
-		runner.addControllerService("dbcp", dbcp, new HashMap<>());
+        runner.addControllerService("dbcp", dbcp, new HashMap<>());
         runner.enableControllerService(dbcp);
     }
     /**
@@ -273,7 +272,7 @@ public class ExecuteGroovyScriptTest {
     
     @Test
     public void test_sql_03_blob_read() throws Exception {
-    	//read blob from database written at previous step and write to flow file
+        //read blob from database written at previous step and write to flow file
         runner.setProperty(proc.SCRIPT_FILE, TEST_RESOURCE_LOCATION+"test_sql_03_blob_read.groovy");
         runner.setProperty(proc.REQUIRE_FLOW, "false");
         runner.setProperty("CTL.sql", "dbcp");
@@ -291,7 +290,7 @@ public class ExecuteGroovyScriptTest {
 
     @Test
     public void test_sql_04_insert_and_json() throws Exception {
-    	//read blob from database written at previous step and write to flow file
+        //read blob from database written at previous step and write to flow file
         runner.setProperty(proc.SCRIPT_FILE, TEST_RESOURCE_LOCATION+"test_sql_04_insert_and_json.groovy");
         runner.setProperty(proc.REQUIRE_FLOW, "true");
         runner.setProperty("CTL.sql", "dbcp");
@@ -332,7 +331,7 @@ public class ExecuteGroovyScriptTest {
 
     @Test
     public void test_read_01() throws Exception {
-        runner.setProperty(proc.SCRIPT_BODY, "assert flowFile.read().getText('UTF-8')=='1234'; flowFile.remove();");
+        runner.setProperty(proc.SCRIPT_BODY, "assert flowFile.read().getText('UTF-8')=='1234'; REL_SUCCESS << flowFile;");
         runner.setProperty(proc.REQUIRE_FLOW, "true");
         
         runner.assertValid();
@@ -340,12 +339,12 @@ public class ExecuteGroovyScriptTest {
         runner.enqueue("1234".getBytes("UTF-8") );
         runner.run();
 
-        runner.assertAllFlowFilesTransferred(proc.REL_SUCCESS.getName(), 0);
+        runner.assertAllFlowFilesTransferred(proc.REL_SUCCESS.getName(), 1);
     }
 
     @Test
     public void test_read_02() throws Exception {
-        runner.setProperty(proc.SCRIPT_BODY, "assert flowFile.read('UTF-8').getText()=='1234'; flowFile.remove();");
+        runner.setProperty(proc.SCRIPT_BODY, "flowFile.read{s-> assert s.getText('UTF-8')=='1234' }; REL_SUCCESS << flowFile;");
         runner.setProperty(proc.REQUIRE_FLOW, "true");
         
         runner.assertValid();
@@ -353,12 +352,12 @@ public class ExecuteGroovyScriptTest {
         runner.enqueue("1234".getBytes("UTF-8") );
         runner.run();
 
-        runner.assertAllFlowFilesTransferred(proc.REL_SUCCESS.getName(), 0);
+        runner.assertAllFlowFilesTransferred(proc.REL_SUCCESS.getName(), 1);
     }
 
     @Test
     public void test_read_03() throws Exception {
-        runner.setProperty(proc.SCRIPT_BODY, "flowFile.read('UTF-8'){ assert it.getText()=='1234' }; flowFile.remove();");
+        runner.setProperty(proc.SCRIPT_BODY, "flowFile.read('UTF-8'){r-> assert r.getText()=='1234' }; REL_SUCCESS << flowFile;");
         runner.setProperty(proc.REQUIRE_FLOW, "true");
         
         runner.assertValid();
@@ -366,7 +365,7 @@ public class ExecuteGroovyScriptTest {
         runner.enqueue("1234".getBytes("UTF-8") );
         runner.run();
 
-        runner.assertAllFlowFilesTransferred(proc.REL_SUCCESS.getName(), 0);
+        runner.assertAllFlowFilesTransferred(proc.REL_SUCCESS.getName(), 1);
     }
 
     

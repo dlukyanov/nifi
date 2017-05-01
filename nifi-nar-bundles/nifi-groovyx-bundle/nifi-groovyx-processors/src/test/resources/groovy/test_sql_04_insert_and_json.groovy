@@ -30,18 +30,22 @@ import groovy.json.JsonOutput
   ...
 ]
 */
-def outFiles = [] //
+def outFiles = [] //list for new flow files
 def rows = new JsonSlurper().parse( flowFile.read() )
 
 rows.each{row->
+	//at this point row is a map with keys corresponding to mytable column names.
+	//build query:  insert into mytable(a,b,c,...) values(:a, :b, :c, ...)
+	//and pass row-map as an argument to this query
 	CTL.sql.executeInsert(row, "insert into mytable( ${row.keySet().join(',')} ) values( :${row.keySet().join(', :')} )")
-	def outFile = flowFile.clone(false) // session.create(flowFile)
-	outFile.write( "UTF-8", JsonOutput.toJson(row) )
-	outFiles.add(outFile)
+	//create new flowfile based on original without copying content, 
+	//write new content and add into outFiles list
+	outFiles << flowFile.clone(false).write( "UTF-8", JsonOutput.toJson(row) )
 }
 
-//just easier to write asserts here
+//just easier to assert sql here
 assert 2+rows.size() == CTL.sql.firstRow("select count(*) cnt from mytable").cnt
 
 flowFile.remove()
+//transfer all new files to success relationship
 REL_SUCCESS << outFiles

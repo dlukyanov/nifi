@@ -27,6 +27,6 @@ flowFile.read{ rawIn->
 		p_data : Sql.BLOB( rawIn ),
 	]
 	assert 1==CTL.sql.executeUpdate(parms, "update mytable set data = :p_data where id = :p_id")
-	//transfer original to output
 }
+//transfer original to output
 REL_SUCCESS << flowFile

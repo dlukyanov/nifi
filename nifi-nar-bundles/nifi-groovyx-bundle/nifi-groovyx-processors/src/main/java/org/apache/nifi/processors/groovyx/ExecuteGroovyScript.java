@@ -449,19 +449,19 @@ public class ExecuteGroovyScript extends AbstractProcessor {
     @Override protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
         if (propertyDescriptorName.startsWith("CTL.")) {
             return new PropertyDescriptor.Builder()
-            		.name(propertyDescriptorName)
-            		.required(false)
-            		.description("Controller service accessible from code as `" + propertyDescriptorName + "`")
+                    .name(propertyDescriptorName)
+                    .required(false)
+                    .description("Controller service accessible from code as `" + propertyDescriptorName + "`")
                     .dynamic(true)
                     .identifiesControllerService(ControllerService.class)
                     .build();
         }
         return new PropertyDescriptor.Builder()
-        		.name(propertyDescriptorName)
-        		.required(false)
-        		.addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-        		.expressionLanguageSupported(true)
-        		.dynamic(true)
+                .name(propertyDescriptorName)
+                .required(false)
+                .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+                .expressionLanguageSupported(true)
+                .dynamic(true)
                 .build();
     }
 

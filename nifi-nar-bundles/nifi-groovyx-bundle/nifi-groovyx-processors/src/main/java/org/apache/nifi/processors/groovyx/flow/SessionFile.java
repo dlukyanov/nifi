@@ -50,10 +50,18 @@ public abstract class SessionFile implements FlowFile {
         this.session = session;
     }
 
+    /**
+     * Returns original session.
+     */
     public ProcessSessionWrap session() {
         return session;
     }
 
+    /**
+     * Clone flowfile with or without content.
+     * @param cloneContent
+     * @return new flow file
+     */
     public SessionFile clone(boolean cloneContent) {
         if (cloneContent) {
             return (SessionFile)session.clone(flowFile); //new SessionFile(session, session.clone(flowFile));
@@ -61,47 +69,98 @@ public abstract class SessionFile implements FlowFile {
         return (SessionFile)session.create(flowFile); //session.wrap( session.create(flowFile) );
     }
 
+    /**
+     * Returns content of the flow file as InputStream.
+     */
     public InputStream read() {
         return session.read(flowFile);
     }
 
+    /**
+     * read flowfile content.
+     */
     public void read(InputStreamCallback c) {
         session.read(flowFile, c);
     }
 
-    public void write(StreamCallback c) {
+    /**
+     * write flowfile content.
+     * @return reference to self
+     */
+    public SessionFile write(StreamCallback c) {
         session.write(this, c);
+        return this;
     }
 
-    public void write(OutputStreamCallback c) {
+    /**
+     * write flowfile content.
+     * @return reference to self
+     */
+    public SessionFile write(OutputStreamCallback c) {
         session.write(this, c);
+        return this;
     }
 
-    public void append(OutputStreamCallback c) {
+    /**
+     * append flowfile content.
+     * @return reference to self
+     */
+    public SessionFile append(OutputStreamCallback c) {
         session.append(this, c);
+        return this;
     }
 
-    public void putAttribute(String key, String value) {
+    /**
+     * set attribute value.
+     * @return reference to self
+     */
+    public SessionFile putAttribute(String key, String value) {
         session.putAttribute(this, key, value);
+        return this;
     }
 
-    public void putAllAttributes(Map m) {
+    /**
+     * Copy attributes from map into flowfile.
+     * @return reference to self
+     */
+    public SessionFile putAllAttributes(Map m) {
         session.putAllAttributes(this, m);
+        return this;
     }
 
-    public void removeAttribute(String key) {
+    /**
+     * Removes one attribute.
+     * @return reference to self
+     */
+    public SessionFile removeAttribute(String key) {
         session.removeAttribute(this, key);
+        return this;
     }
 
-    public void removeAllAttributes(Collection<String> keys) {
+    /**
+     * Removes attributes by list.
+     * @return reference to self
+     */
+    public SessionFile removeAllAttributes(Collection<String> keys) {
         Set<String> keyset = (Set<String>) (keys instanceof Set ? keys : new HashSet(keys));
         session.removeAllAttributes(this, keyset);
+        return this;
     }
 
+    /**
+     * Transfers to defined relationship or to input relationship if parameter is null.
+     */
     public void transfer(Relationship r) {
-        session.transfer(this, r);
+        if ( r==null ) {
+            session.transfer(this);
+        } else {
+            session.transfer(this, r);
+        }
     }
 
+    /**
+     * Drops this flow file from session.
+     */
     public void remove() {
         session.remove(this);
     }

@@ -82,15 +82,15 @@ public abstract class ProcessSessionWrap implements ProcessSession {
     /** 
      * function returns wrapped flowfile with session for the simplified script access.
      * The sample implementation: <code> 
-		public SessionFile wrap(FlowFile f) {
-			if (f == null) {
-				return null;
-			}
-			if (f instanceof SessionFile) {
-				return ((SessionFile) f);
-			}
-			return new SessionFile(this, f);
-		}</code>
+        public SessionFile wrap(FlowFile f) {
+            if (f == null) {
+                return null;
+            }
+            if (f instanceof SessionFile) {
+                return ((SessionFile) f);
+            }
+            return new SessionFile(this, f);
+        }</code>
      */    
     public abstract SessionFile wrap(FlowFile f);
 
