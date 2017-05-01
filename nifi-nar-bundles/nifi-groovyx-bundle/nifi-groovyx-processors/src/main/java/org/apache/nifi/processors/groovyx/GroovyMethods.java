@@ -62,7 +62,8 @@ class GroovyMethods {
 
     private static boolean metaRelationship() {
         GroovySystem.getMetaClassRegistry().setMetaClass(Relationship.class, new DelegatingMetaClass(Relationship.class) {
-            @Override public Object invokeMethod(Object object, String methodName, Object[] args) {
+            @Override
+            public Object invokeMethod(Object object, String methodName, Object[] args) {
                 if (object instanceof Relationship) {
                     if ("leftShift".equals(methodName) && args.length == 1) {
                         if (args[0] instanceof SessionFile) {
@@ -84,7 +85,7 @@ class GroovyMethods {
             /** to support: REL_SUCCESS << sessionFileCollection */
             private Relationship leftShift(Relationship r, Collection sfl) {
                 if (sfl != null && sfl.size() > 0) {
-                    ProcessSessionWrap session = ((SessionFile)sfl.iterator().next()).session();
+                    ProcessSessionWrap session = ((SessionFile) sfl.iterator().next()).session();
                     List<FlowFile> ffl = session.unwrap(sfl);
                     //assume all files has the same session
                     session.transfer(ffl, r);

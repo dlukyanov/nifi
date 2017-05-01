@@ -59,14 +59,15 @@ public abstract class SessionFile implements FlowFile {
 
     /**
      * Clone flowfile with or without content.
+     *
      * @param cloneContent
      * @return new flow file
      */
     public SessionFile clone(boolean cloneContent) {
         if (cloneContent) {
-            return (SessionFile)session.clone(flowFile); //new SessionFile(session, session.clone(flowFile));
+            return (SessionFile) session.clone(flowFile); //new SessionFile(session, session.clone(flowFile));
         }
-        return (SessionFile)session.create(flowFile); //session.wrap( session.create(flowFile) );
+        return (SessionFile) session.create(flowFile); //session.wrap( session.create(flowFile) );
     }
 
     /**
@@ -85,6 +86,7 @@ public abstract class SessionFile implements FlowFile {
 
     /**
      * write flowfile content.
+     *
      * @return reference to self
      */
     public SessionFile write(StreamCallback c) {
@@ -94,6 +96,7 @@ public abstract class SessionFile implements FlowFile {
 
     /**
      * write flowfile content.
+     *
      * @return reference to self
      */
     public SessionFile write(OutputStreamCallback c) {
@@ -103,6 +106,7 @@ public abstract class SessionFile implements FlowFile {
 
     /**
      * append flowfile content.
+     *
      * @return reference to self
      */
     public SessionFile append(OutputStreamCallback c) {
@@ -112,6 +116,7 @@ public abstract class SessionFile implements FlowFile {
 
     /**
      * set attribute value.
+     *
      * @return reference to self
      */
     public SessionFile putAttribute(String key, String value) {
@@ -121,6 +126,7 @@ public abstract class SessionFile implements FlowFile {
 
     /**
      * Copy attributes from map into flowfile.
+     *
      * @return reference to self
      */
     public SessionFile putAllAttributes(Map m) {
@@ -130,6 +136,7 @@ public abstract class SessionFile implements FlowFile {
 
     /**
      * Removes one attribute.
+     *
      * @return reference to self
      */
     public SessionFile removeAttribute(String key) {
@@ -139,6 +146,7 @@ public abstract class SessionFile implements FlowFile {
 
     /**
      * Removes attributes by list.
+     *
      * @return reference to self
      */
     public SessionFile removeAllAttributes(Collection<String> keys) {
@@ -151,7 +159,7 @@ public abstract class SessionFile implements FlowFile {
      * Transfers to defined relationship or to input relationship if parameter is null.
      */
     public void transfer(Relationship r) {
-        if ( r==null ) {
+        if (r == null) {
             session.transfer(this);
         } else {
             session.transfer(this, r);
@@ -166,46 +174,56 @@ public abstract class SessionFile implements FlowFile {
     }
 
     //OVERRIDE
-    @Override public long getId() {
+    @Override
+    public long getId() {
         return flowFile.getId();
     }
 
-    @Override public long getEntryDate() {
+    @Override
+    public long getEntryDate() {
         return flowFile.getEntryDate();
     }
 
-    @Override public long getLineageStartDate() {
+    @Override
+    public long getLineageStartDate() {
         return flowFile.getLineageStartDate();
     }
 
-    @Override public long getLineageStartIndex() {
+    @Override
+    public long getLineageStartIndex() {
         return flowFile.getLineageStartIndex();
     }
 
-    @Override public Long getLastQueueDate() {
+    @Override
+    public Long getLastQueueDate() {
         return flowFile.getLastQueueDate();
     }
 
-    @Override public long getQueueDateIndex() {
+    @Override
+    public long getQueueDateIndex() {
         return flowFile.getQueueDateIndex();
     }
 
-    @Override public boolean isPenalized() {
+    @Override
+    public boolean isPenalized() {
         return flowFile.isPenalized();
     }
 
-    @Override public String getAttribute(String key) {
+    @Override
+    public String getAttribute(String key) {
         return flowFile.getAttribute(key);
     }
 
-    @Override public long getSize() {
+    @Override
+    public long getSize() {
         return flowFile.getSize();
     }
 
     /**
      * @return an unmodifiable map of the flow file attributes
      */
-    @Override public Map<String, String> getAttributes() {
+    @Override
+    public Map<String, String> getAttributes() {
         return flowFile.getAttributes();
     }
 
@@ -216,7 +234,8 @@ public abstract class SessionFile implements FlowFile {
         return flowFile.compareTo(other);
     }
 
-    @Override public String toString() {
+    @Override
+    public String toString() {
         return "WRAP[" + flowFile.toString() + "]";
     }
 

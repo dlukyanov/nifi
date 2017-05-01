@@ -71,7 +71,6 @@ public class ExecuteGroovyScriptTest {
             + "male,mr,todd,graham";
 
 
-
     @AfterClass
     public static void cleanUpAfterClass() throws Exception {
         try {
@@ -101,9 +100,10 @@ public class ExecuteGroovyScriptTest {
         dbcp = new DBCPServiceSimpleImpl();
         Connection con = dbcp.getConnection();
         Statement stmt = con.createStatement();
-        try{
+        try {
             stmt.execute("drop table mytable");
-        }catch(Exception e){}
+        } catch (Exception e) {
+        }
         stmt.execute("create table mytable (id integer not null, name varchar(100), scale float, created timestamp, data blob)");
         stmt.execute("insert into mytable (id, name, scale, created, data) VALUES (0, 'Joe Smith', 1.0, '1962-09-23 03:23:34.234', null)");
         stmt.execute("insert into mytable (id, name, scale, created, data) VALUES (1, 'Carrie Jones', 5.1, '2000-01-01 03:23:34.234', null)");
@@ -111,7 +111,7 @@ public class ExecuteGroovyScriptTest {
         con.commit();
         con.close();
     }
-    
+
     @Before
     public void setup() throws Exception {
         //init processor
@@ -119,14 +119,16 @@ public class ExecuteGroovyScriptTest {
         MockProcessContext context = new MockProcessContext(proc);
         MockProcessorInitializationContext initContext = new MockProcessorInitializationContext(proc, context);
         proc.initialize(initContext);
-        
+
         assertNotNull(proc.getSupportedPropertyDescriptors());
         runner = TestRunners.newTestRunner(proc);
         runner.addControllerService("dbcp", dbcp, new HashMap<>());
         runner.enableControllerService(dbcp);
     }
+
     /**
      * Tests a script that reads content of the flowfile content and stores the value in an attribute of the outgoing flowfile.
+     *
      * @throws Exception Any error encountered while testing
      */
     @Test
@@ -134,7 +136,7 @@ public class ExecuteGroovyScriptTest {
         runner.setProperty(proc.SCRIPT_BODY, "flowFile.testAttr = flowFile.read().getText('UTF-8'); REL_SUCCESS << flowFile;");
         runner.setProperty(proc.REQUIRE_FLOW, "true");
         //runner.setProperty(proc.FAIL_STRATEGY, "rollback");
-        
+
         runner.assertValid();
         runner.enqueue("test content".getBytes("UTF-8"));
         runner.run();
@@ -143,42 +145,42 @@ public class ExecuteGroovyScriptTest {
         final List<MockFlowFile> result = runner.getFlowFilesForRelationship(proc.REL_SUCCESS.getName());
         result.get(0).assertAttributeEquals("testAttr", "test content");
     }
-    
+
     @Test
     public void test_onTrigger_groovy() throws Exception {
-        runner.setProperty(proc.SCRIPT_FILE, TEST_RESOURCE_LOCATION+"test_onTrigger.groovy");
+        runner.setProperty(proc.SCRIPT_FILE, TEST_RESOURCE_LOCATION + "test_onTrigger.groovy");
         runner.setProperty(proc.REQUIRE_FLOW, "false");
         //runner.setProperty(proc.FAIL_STRATEGY, "rollback");
         runner.assertValid();
-        
+
         runner.enqueue("test content".getBytes(StandardCharsets.UTF_8));
         runner.run();
         runner.assertAllFlowFilesTransferred(proc.REL_SUCCESS.getName(), 1);
         final List<MockFlowFile> result = runner.getFlowFilesForRelationship(proc.REL_SUCCESS.getName());
         result.get(0).assertAttributeEquals("from-content", "test content");
     }
-    
+
     @Test
     public void test_onTriggerX_groovy() throws Exception {
-        runner.setProperty(proc.SCRIPT_FILE, TEST_RESOURCE_LOCATION+"test_onTriggerX.groovy");
+        runner.setProperty(proc.SCRIPT_FILE, TEST_RESOURCE_LOCATION + "test_onTriggerX.groovy");
         runner.setProperty(proc.REQUIRE_FLOW, "true");
         //runner.setProperty(proc.FAIL_STRATEGY, "rollback");
         runner.assertValid();
-        
+
         runner.enqueue("test content".getBytes(StandardCharsets.UTF_8));
         runner.run();
         runner.assertAllFlowFilesTransferred(proc.REL_SUCCESS.getName(), 1);
         final List<MockFlowFile> result = runner.getFlowFilesForRelationship(proc.REL_SUCCESS.getName());
         result.get(0).assertAttributeEquals("from-content", "test content");
     }
-    
+
     @Test
     public void test_onTrigger_changeContent_groovy() throws Exception {
-        runner.setProperty(proc.SCRIPT_FILE, TEST_RESOURCE_LOCATION+"test_onTrigger_changeContent.groovy");
+        runner.setProperty(proc.SCRIPT_FILE, TEST_RESOURCE_LOCATION + "test_onTrigger_changeContent.groovy");
         runner.setProperty(proc.REQUIRE_FLOW, "false");
         //runner.setProperty(proc.FAIL_STRATEGY, "rollback");
         runner.assertValid();
-        
+
         runner.enqueue(TEST_CSV_DATA.getBytes(StandardCharsets.UTF_8));
         runner.run();
 
@@ -188,14 +190,14 @@ public class ExecuteGroovyScriptTest {
         resultFile.assertAttributeEquals("selected.columns", "first,last");
         resultFile.assertContentEquals("Marlene Shaw\nTodd Graham\n");
     }
-    
+
     @Test
     public void test_onTrigger_changeContentX_groovy() throws Exception {
-        runner.setProperty(proc.SCRIPT_FILE, TEST_RESOURCE_LOCATION+"test_onTrigger_changeContentX.groovy");
+        runner.setProperty(proc.SCRIPT_FILE, TEST_RESOURCE_LOCATION + "test_onTrigger_changeContentX.groovy");
         runner.setProperty(proc.REQUIRE_FLOW, "true");
         //runner.setProperty(proc.FAIL_STRATEGY, "rollback");
         runner.assertValid();
-        
+
         runner.enqueue(TEST_CSV_DATA.getBytes(StandardCharsets.UTF_8));
         runner.run();
 
@@ -205,10 +207,10 @@ public class ExecuteGroovyScriptTest {
         resultFile.assertAttributeEquals("selected.columns", "first,last");
         resultFile.assertContentEquals("Marlene Shaw\nTodd Graham\n");
     }
-    
+
     @Test
     public void test_no_input_groovy() throws Exception {
-        runner.setProperty(proc.SCRIPT_FILE, TEST_RESOURCE_LOCATION+"test_no_input.groovy");
+        runner.setProperty(proc.SCRIPT_FILE, TEST_RESOURCE_LOCATION + "test_no_input.groovy");
         runner.setProperty(proc.REQUIRE_FLOW, "false");
         //runner.setProperty(proc.FAIL_STRATEGY, "rollback");
         runner.assertValid();
@@ -219,69 +221,69 @@ public class ExecuteGroovyScriptTest {
         resultFile.assertAttributeEquals("filename", "test.txt");
         resultFile.assertContentEquals("Test");
     }
-    
-    
+
+
     @Test
     public void test_good_script() throws Exception {
         runner.setProperty(proc.SCRIPT_BODY, " REL_SUCCESS << flowFile ");
         runner.setProperty(proc.REQUIRE_FLOW, "true");
         runner.assertValid();
     }
-    
+
     @Test
     public void test_bad_script() throws Exception {
         runner.setProperty(proc.SCRIPT_BODY, " { { ");
         runner.setProperty(proc.REQUIRE_FLOW, "true");
         runner.assertNotValid();
     }
-    
+
     @Test
     public void test_sql_01_select() throws Exception {
-        runner.setProperty(proc.SCRIPT_FILE, TEST_RESOURCE_LOCATION+"test_sql_01_select.groovy");
+        runner.setProperty(proc.SCRIPT_FILE, TEST_RESOURCE_LOCATION + "test_sql_01_select.groovy");
         runner.setProperty(proc.REQUIRE_FLOW, "false");
         runner.setProperty("CTL.sql", "dbcp");
         runner.assertValid();
-        
+
         runner.run();
-        
+
         runner.assertAllFlowFilesTransferred(proc.REL_SUCCESS.getName(), 1);
         final List<MockFlowFile> result = runner.getFlowFilesForRelationship(proc.REL_SUCCESS.getName());
         MockFlowFile resultFile = result.get(0);
         resultFile.assertAttributeEquals("filename", "test.txt");
-        resultFile.assertContentEquals("Joe Smith\nCarrie Jones\n","UTF-8");
+        resultFile.assertContentEquals("Joe Smith\nCarrie Jones\n", "UTF-8");
     }
-    
+
     @Test
     public void test_sql_02_blob_write() throws Exception {
-        runner.setProperty(proc.SCRIPT_FILE, TEST_RESOURCE_LOCATION+"test_sql_02_blob_write.groovy");
+        runner.setProperty(proc.SCRIPT_FILE, TEST_RESOURCE_LOCATION + "test_sql_02_blob_write.groovy");
         runner.setProperty(proc.REQUIRE_FLOW, "true");
         runner.setProperty("CTL.sql", "dbcp");
         //runner.setProperty("ID", "0");
         runner.assertValid();
-        
-        runner.enqueue(TEST_CSV_DATA.getBytes(StandardCharsets.UTF_8), map("ID","0") );
+
+        runner.enqueue(TEST_CSV_DATA.getBytes(StandardCharsets.UTF_8), map("ID", "0"));
         runner.run();
-        
+
         runner.assertAllFlowFilesTransferred(proc.REL_SUCCESS.getName(), 1);
         final List<MockFlowFile> result = runner.getFlowFilesForRelationship(proc.REL_SUCCESS.getName());
         MockFlowFile resultFile = result.get(0);
         resultFile.assertContentEquals(TEST_CSV_DATA.getBytes(StandardCharsets.UTF_8));
         //let's check database content in next text case
-        
+
     }
-    
+
     @Test
     public void test_sql_03_blob_read() throws Exception {
         //read blob from database written at previous step and write to flow file
-        runner.setProperty(proc.SCRIPT_FILE, TEST_RESOURCE_LOCATION+"test_sql_03_blob_read.groovy");
+        runner.setProperty(proc.SCRIPT_FILE, TEST_RESOURCE_LOCATION + "test_sql_03_blob_read.groovy");
         runner.setProperty(proc.REQUIRE_FLOW, "false");
         runner.setProperty("CTL.sql", "dbcp");
         runner.setProperty("ID", "0");
         runner.setValidateExpressionUsage(false);
         runner.assertValid();
-        
+
         runner.run();
-        
+
         runner.assertAllFlowFilesTransferred(proc.REL_SUCCESS.getName(), 1);
         final List<MockFlowFile> result = runner.getFlowFilesForRelationship(proc.REL_SUCCESS.getName());
         MockFlowFile resultFile = result.get(0);
@@ -291,52 +293,52 @@ public class ExecuteGroovyScriptTest {
     @Test
     public void test_sql_04_insert_and_json() throws Exception {
         //read blob from database written at previous step and write to flow file
-        runner.setProperty(proc.SCRIPT_FILE, TEST_RESOURCE_LOCATION+"test_sql_04_insert_and_json.groovy");
+        runner.setProperty(proc.SCRIPT_FILE, TEST_RESOURCE_LOCATION + "test_sql_04_insert_and_json.groovy");
         runner.setProperty(proc.REQUIRE_FLOW, "true");
         runner.setProperty("CTL.sql", "dbcp");
         runner.setValidateExpressionUsage(false);
         runner.assertValid();
-        
-        runner.enqueue(new FileInputStream(TEST_RESOURCE_LOCATION+"test_sql_04_insert_and_json.json"));
+
+        runner.enqueue(new FileInputStream(TEST_RESOURCE_LOCATION + "test_sql_04_insert_and_json.json"));
         runner.run();
-        
+
         runner.assertAllFlowFilesTransferred(proc.REL_SUCCESS.getName(), 3);  //number of inserted rows
         final List<MockFlowFile> result = runner.getFlowFilesForRelationship(proc.REL_SUCCESS.getName());
         MockFlowFile resultFile = result.get(0);
-        List<String> lines = ResourceGroovyMethods.readLines( new File(TEST_RESOURCE_LOCATION+"test_sql_04_insert_and_json.json"), "UTF-8");
+        List<String> lines = ResourceGroovyMethods.readLines(new File(TEST_RESOURCE_LOCATION + "test_sql_04_insert_and_json.json"), "UTF-8");
         //pass through to-fron json before compare
-        resultFile.assertContentEquals( JsonOutput.toJson( new JsonSlurper().parseText(lines.get(1)) ) ,"UTF-8");
+        resultFile.assertContentEquals(JsonOutput.toJson(new JsonSlurper().parseText(lines.get(1))), "UTF-8");
     }
-    
+
     @Test
     public void test_filter_01() throws Exception {
         runner.setProperty(proc.SCRIPT_BODY, "def ff = session.get{it.FILTER=='3'}; if(!ff)return; REL_SUCCESS << ff;");
         runner.setProperty(proc.REQUIRE_FLOW, "false");
         //runner.setProperty(proc.FAIL_STRATEGY, "rollback");
-        
+
         runner.assertValid();
-        
-        runner.enqueue("01".getBytes("UTF-8"), map("FILTER","1") );
-        runner.enqueue("31".getBytes("UTF-8"), map("FILTER","3") );
-        runner.enqueue("03".getBytes("UTF-8"), map("FILTER","2") );
-        runner.enqueue("32".getBytes("UTF-8"), map("FILTER","3") );
+
+        runner.enqueue("01".getBytes("UTF-8"), map("FILTER", "1"));
+        runner.enqueue("31".getBytes("UTF-8"), map("FILTER", "3"));
+        runner.enqueue("03".getBytes("UTF-8"), map("FILTER", "2"));
+        runner.enqueue("32".getBytes("UTF-8"), map("FILTER", "3"));
         runner.run();
 
         runner.assertAllFlowFilesTransferred(proc.REL_SUCCESS.getName(), 2);
         final List<MockFlowFile> result = runner.getFlowFilesForRelationship(proc.REL_SUCCESS.getName());
-        
-        result.get(0).assertContentEquals( "31" ,"UTF-8");
-        result.get(1).assertContentEquals( "32" ,"UTF-8");
+
+        result.get(0).assertContentEquals("31", "UTF-8");
+        result.get(1).assertContentEquals("32", "UTF-8");
     }
 
     @Test
     public void test_read_01() throws Exception {
         runner.setProperty(proc.SCRIPT_BODY, "assert flowFile.read().getText('UTF-8')=='1234'; REL_SUCCESS << flowFile;");
         runner.setProperty(proc.REQUIRE_FLOW, "true");
-        
+
         runner.assertValid();
-        
-        runner.enqueue("1234".getBytes("UTF-8") );
+
+        runner.enqueue("1234".getBytes("UTF-8"));
         runner.run();
 
         runner.assertAllFlowFilesTransferred(proc.REL_SUCCESS.getName(), 1);
@@ -346,10 +348,10 @@ public class ExecuteGroovyScriptTest {
     public void test_read_02() throws Exception {
         runner.setProperty(proc.SCRIPT_BODY, "flowFile.read{s-> assert s.getText('UTF-8')=='1234' }; REL_SUCCESS << flowFile;");
         runner.setProperty(proc.REQUIRE_FLOW, "true");
-        
+
         runner.assertValid();
-        
-        runner.enqueue("1234".getBytes("UTF-8") );
+
+        runner.enqueue("1234".getBytes("UTF-8"));
         runner.run();
 
         runner.assertAllFlowFilesTransferred(proc.REL_SUCCESS.getName(), 1);
@@ -359,23 +361,22 @@ public class ExecuteGroovyScriptTest {
     public void test_read_03() throws Exception {
         runner.setProperty(proc.SCRIPT_BODY, "flowFile.read('UTF-8'){r-> assert r.getText()=='1234' }; REL_SUCCESS << flowFile;");
         runner.setProperty(proc.REQUIRE_FLOW, "true");
-        
+
         runner.assertValid();
-        
-        runner.enqueue("1234".getBytes("UTF-8") );
+
+        runner.enqueue("1234".getBytes("UTF-8"));
         runner.run();
 
         runner.assertAllFlowFilesTransferred(proc.REL_SUCCESS.getName(), 1);
     }
 
-    
-        
-    private HashMap<String,String> map(String key, String value){
+
+    private HashMap<String, String> map(String key, String value) {
         HashMap<String, String> attrs = new HashMap<String, String>();
-        attrs.put(key,value);
+        attrs.put(key, value);
         return attrs;
     }
-    
+
     private static class DBCPServiceSimpleImpl extends AbstractControllerService implements DBCPService {
 
         @Override

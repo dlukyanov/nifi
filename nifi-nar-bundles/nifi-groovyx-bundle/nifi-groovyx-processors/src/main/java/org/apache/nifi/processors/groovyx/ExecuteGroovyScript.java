@@ -63,12 +63,15 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.components.ValidationContext;
 
-
-@EventDriven @Tags({ "script", "groovy", "groovyx", "extended" }) @CapabilityDescription(
+@EventDriven
+@Tags({"script", "groovy", "groovyx", "extended"})
+@CapabilityDescription(
         "Experimental Extended Groovy script processor. The script is responsible for " + "handling the incoming flow file (transfer to SUCCESS or remove, e.g.) as well as any flow files created by "
-                + "the script. If the handling is incomplete or incorrect, the session will be rolled back.") @SeeAlso({}) @DynamicProperty(name = "A script engine property to update", value = "The value to set it to", supportsExpressionLanguage = true, description =
+                + "the script. If the handling is incomplete or incorrect, the session will be rolled back.")
+@SeeAlso({})
+@DynamicProperty(name = "A script engine property to update", value = "The value to set it to", supportsExpressionLanguage = true, description =
         "Updates a script engine property specified by the Dynamic Property's key with the value "
-                + "specified by the Dynamic Property's value. Use `CTL.` to access any controller services.") 
+                + "specified by the Dynamic Property's value. Use `CTL.` to access any controller services.")
 public class ExecuteGroovyScript extends AbstractProcessor {
     public static final String GROOVY_CLASSPATH = "${groovy.classes.path}";
 
@@ -77,20 +80,19 @@ public class ExecuteGroovyScript extends AbstractProcessor {
             + "import org.apache.nifi.processor.util.*;" + "import org.apache.nifi.processors.script.*;" + "import org.apache.nifi.logging.ComponentLog;";
 
     public static final PropertyDescriptor SCRIPT_FILE = new PropertyDescriptor.Builder().name("Script File").required(false)
-            .description("Path to script file to execute. Only one of Script File or Script Body may be used")
-            .addValidator(Validators.createFileExistsAndReadableValidator())
+            .description("Path to script file to execute. Only one of Script File or Script Body may be used").addValidator(Validators.createFileExistsAndReadableValidator())
             .expressionLanguageSupported(true).build();
 
     public static final PropertyDescriptor SCRIPT_BODY = new PropertyDescriptor.Builder().name("Script Body").required(false)
             .description("Body of script to execute. Only one of Script File or Script Body may be used").addValidator(StandardValidators.NON_EMPTY_VALIDATOR).expressionLanguageSupported(false)
             .build();
 
-    public static String[] VALID_BOOLEANS = { "true", "false" };
+    public static String[] VALID_BOOLEANS = {"true", "false"};
     public static final PropertyDescriptor REQUIRE_FLOW = new PropertyDescriptor.Builder().name("Requires flow file")
             .description("If `true` then flowFile variable initialized and validated. So developer don't need to do flowFile = session.get(). If `false` the flowFile variable not initialized.")
             .required(true).expressionLanguageSupported(false).allowableValues(VALID_BOOLEANS).defaultValue("false").build();
 
-    public static String[] VALID_FAIL_STRATEGY = { "rollback", "transfer to failure" };
+    public static String[] VALID_FAIL_STRATEGY = {"rollback", "transfer to failure"};
     public static final PropertyDescriptor FAIL_STRATEGY = new PropertyDescriptor.Builder().name("Failure strategy").description(
             "If `transfer to failure` used then all flowFiles received from incoming queues in this session in case of exception will be transferred to `failure` relationship with additional attributes set: ERROR_MESSAGE and ERROR_STACKTRACE.")
             .required(true).expressionLanguageSupported(false).allowableValues(VALID_FAIL_STRATEGY).defaultValue(VALID_FAIL_STRATEGY[0]).build();
@@ -115,7 +117,7 @@ public class ExecuteGroovyScript extends AbstractProcessor {
     volatile Class<Script> compiled = null;  //compiled script
     volatile long scriptLastModified = 0;  //last scriptFile modification to check if recompile required 
 
-    @Override 
+    @Override
     protected void init(final ProcessorInitializationContext context) {
         List<PropertyDescriptor> descriptors = new ArrayList<PropertyDescriptor>();
         descriptors.add(SCRIPT_FILE);
@@ -132,18 +134,20 @@ public class ExecuteGroovyScript extends AbstractProcessor {
 
     }
 
-    @Override 
+    @Override
     public Set<Relationship> getRelationships() {
         return relationships;
     }
 
-    @Override 
+    @Override
     public final List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return descriptors;
     }
-    
-    private File asFile(String f){
-        if(f==null || f.length()==0)return null;
+
+    private File asFile(String f) {
+        if (f == null || f.length() == 0) {
+            return null;
+        }
         return new File(f);
     }
 
@@ -165,38 +169,28 @@ public class ExecuteGroovyScript extends AbstractProcessor {
             }
         }
     }
-    
+
     /**
      * Let's do validation by script compile at this point.
      *
-     * @param validationContext provides a mechanism for obtaining externally
-     * managed values, such as property values and supplies convenience methods
-     * for operating on those values
-     *
-     * @return Collection of ValidationResult objects that will be added to any
-     * other validation findings - may be null
+     * @param validationContext provides a mechanism for obtaining externally managed values, such as property values and supplies convenience methods for operating on those values
+     * @return Collection of ValidationResult objects that will be added to any other validation findings - may be null
      */
     protected Collection<ValidationResult> customValidate(final ValidationContext context) {
-        this.scriptFile = asFile( context.getProperty(SCRIPT_FILE).evaluateAttributeExpressions().getValue() );  //SCRIPT_FILE
+        this.scriptFile = asFile(context.getProperty(SCRIPT_FILE).evaluateAttributeExpressions().getValue());  //SCRIPT_FILE
         this.scriptBody = context.getProperty(SCRIPT_BODY).getValue(); //SCRIPT_BODY
         this.addClasspath = context.getProperty(ADD_CLASSPATH).evaluateAttributeExpressions().getValue(); //ADD_CLASSPATH
         this.groovyClasspath = context.newPropertyValue(GROOVY_CLASSPATH).evaluateAttributeExpressions().getValue(); //evaluated from ${groovy.classes.path} global property
-        
+
         final Collection<ValidationResult> results = new HashSet<>();
         try {
             getGroovyScript();
         } catch (Throwable t) {
-            results.add(new ValidationResult.Builder()
-                .subject("GroovyScript")
-                .input( this.scriptFile!=null ? this.scriptFile.toString() : null )
-                .valid(false)
-                .explanation( t.toString() )
-                .build()
-            );
+            results.add(new ValidationResult.Builder().subject("GroovyScript").input(this.scriptFile != null ? this.scriptFile.toString() : null).valid(false).explanation(t.toString()).build());
         }
         return results;
     }
-    
+
     /**
      * Hook method allowing subclasses to eagerly react to a configuration
      * change for the given property descriptor. As an alternative to using this
@@ -204,9 +198,8 @@ public class ExecuteGroovyScript extends AbstractProcessor {
      * and if necessary lazily evaluate it.
      *
      * @param descriptor of the modified property
-     * @param oldValue non-null property value (previous)
-     * @param newValue the new property value or if null indicates the property
-     * was removed
+     * @param oldValue   non-null property value (previous)
+     * @param newValue   the new property value or if null indicates the property was removed
      */
     @Override
     public void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
@@ -221,9 +214,9 @@ public class ExecuteGroovyScript extends AbstractProcessor {
      *
      * @param context the context in which to perform the setup operations
      */
-    @OnScheduled 
+    @OnScheduled
     public void onScheduled(final ProcessContext context) {
-        this.scriptFile = asFile( context.getProperty(SCRIPT_FILE).evaluateAttributeExpressions().getValue() );  //SCRIPT_FILE
+        this.scriptFile = asFile(context.getProperty(SCRIPT_FILE).evaluateAttributeExpressions().getValue());  //SCRIPT_FILE
         this.scriptBody = context.getProperty(SCRIPT_BODY).getValue(); //SCRIPT_BODY
         this.addClasspath = context.getProperty(ADD_CLASSPATH).evaluateAttributeExpressions().getValue(); //ADD_CLASSPATH
         this.groovyClasspath = context.newPropertyValue(GROOVY_CLASSPATH).evaluateAttributeExpressions().getValue(); //evaluated from ${groovy.classes.path} global property
@@ -241,8 +234,8 @@ public class ExecuteGroovyScript extends AbstractProcessor {
             throw new ProcessException("onStart failed: " + t, t);
         }
     }
-        
-    @OnStopped 
+
+    @OnStopped
     public void onStopped(final ProcessContext context) {
         try {
             callScriptStatic("onStop", context);
@@ -261,14 +254,16 @@ public class ExecuteGroovyScript extends AbstractProcessor {
         if (scriptBody == null && scriptFile == null) {
             throw new ProcessException("At least one parameter required: `" + SCRIPT_BODY.getDisplayName() + "` or `" + SCRIPT_FILE.getDisplayName() + "`");
         }
-        
-        if(shell==null){
+
+        if (shell == null) {
             CompilerConfiguration conf = new CompilerConfiguration();
             conf.setDebug(true);
             shell = new GroovyShell(conf);
             if (addClasspath != null && addClasspath.length() > 0) {
                 for (File fcp : Files.listPathsFiles(addClasspath)) {
-                    if( !fcp.exists() ) throw new ProcessException("Path not found `" + fcp + "` for `" + ADD_CLASSPATH.getDisplayName() + "`");
+                    if (!fcp.exists()) {
+                        throw new ProcessException("Path not found `" + fcp + "` for `" + ADD_CLASSPATH.getDisplayName() + "`");
+                    }
                     shell.getClassLoader().addClasspath(fcp.toString());
                 }
             }
@@ -294,7 +289,7 @@ public class ExecuteGroovyScript extends AbstractProcessor {
                 scriptText = scriptBody;
             }
             script = shell.parse(PRELOADS + scriptText, scriptName);
-            compiled = (Class<Script>)script.getClass();
+            compiled = (Class<Script>) script.getClass();
         }
         if (script == null) {
             script = (Script) compiled.newInstance();
@@ -303,7 +298,9 @@ public class ExecuteGroovyScript extends AbstractProcessor {
         return script;
     }
 
-    /** init controller services */
+    /**
+     * init controller services
+     */
     private void onInitCTL(HashMap CTL) throws SQLException {
         for (Map.Entry e : (Set<Map.Entry>) CTL.entrySet()) {
             if (e.getValue() instanceof DBCPService) {
@@ -315,7 +312,9 @@ public class ExecuteGroovyScript extends AbstractProcessor {
         }
     }
 
-    /** before commit controller services */
+    /**
+     * before commit controller services
+     */
     private void onCommitCTL(HashMap CTL) throws SQLException {
         for (Map.Entry e : (Set<Map.Entry>) CTL.entrySet()) {
             if (e.getValue() instanceof OSql) {
@@ -325,7 +324,9 @@ public class ExecuteGroovyScript extends AbstractProcessor {
         }
     }
 
-    /** finalize controller services */
+    /**
+     * finalize controller services
+     */
     private void onFinitCTL(HashMap CTL) {
         for (Map.Entry e : (Set<Map.Entry>) CTL.entrySet()) {
             if (e.getValue() instanceof OSql) {
@@ -341,7 +342,9 @@ public class ExecuteGroovyScript extends AbstractProcessor {
         }
     }
 
-    /** exception controller services */
+    /**
+     * exception controller services
+     */
     private void onFailCTL(HashMap CTL) {
         for (Map.Entry e : (Set<Map.Entry>) CTL.entrySet()) {
             if (e.getValue() instanceof OSql) {
@@ -353,7 +356,6 @@ public class ExecuteGroovyScript extends AbstractProcessor {
             }
         }
     }
-    
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession _session) throws ProcessException {
@@ -377,7 +379,7 @@ public class ExecuteGroovyScript extends AbstractProcessor {
         }
 
         HashMap CTL = new HashMap() {
-            @Override 
+            @Override
             public Object get(Object key) {
                 if (!containsKey(key)) {
                     throw new RuntimeException("The `CTL." + key + "` not defined in processor properties");
@@ -446,22 +448,13 @@ public class ExecuteGroovyScript extends AbstractProcessor {
      * @param propertyDescriptorName used to lookup if any property descriptors exist for that name
      * @return a PropertyDescriptor object corresponding to the specified dynamic property name
      */
-    @Override protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
+    @Override
+    protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
         if (propertyDescriptorName.startsWith("CTL.")) {
-            return new PropertyDescriptor.Builder()
-                    .name(propertyDescriptorName)
-                    .required(false)
-                    .description("Controller service accessible from code as `" + propertyDescriptorName + "`")
-                    .dynamic(true)
-                    .identifiesControllerService(ControllerService.class)
-                    .build();
+            return new PropertyDescriptor.Builder().name(propertyDescriptorName).required(false).description("Controller service accessible from code as `" + propertyDescriptorName + "`")
+                    .dynamic(true).identifiesControllerService(ControllerService.class).build();
         }
-        return new PropertyDescriptor.Builder()
-                .name(propertyDescriptorName)
-                .required(false)
-                .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-                .expressionLanguageSupported(true)
-                .dynamic(true)
+        return new PropertyDescriptor.Builder().name(propertyDescriptorName).required(false).addValidator(StandardValidators.NON_EMPTY_VALIDATOR).expressionLanguageSupported(true).dynamic(true)
                 .build();
     }
 

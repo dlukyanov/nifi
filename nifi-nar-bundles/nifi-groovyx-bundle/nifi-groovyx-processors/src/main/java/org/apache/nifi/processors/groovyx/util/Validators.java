@@ -17,6 +17,7 @@
 package org.apache.nifi.processors.groovyx.util;
 
 import java.io.File;
+
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
 

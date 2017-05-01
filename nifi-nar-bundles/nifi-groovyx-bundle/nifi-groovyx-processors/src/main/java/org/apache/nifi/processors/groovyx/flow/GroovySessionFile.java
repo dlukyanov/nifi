@@ -46,17 +46,19 @@ public class GroovySessionFile extends SessionFile implements GroovyObject {
         setMetaClass(null); //set defult metaclass
     }
     /*----------------------GroovyObject methods >>---------------------------*/
+
     /**
-     * alias method to getAttribute that will act in groovy as a property except for `size` and `attributes` 
+     * alias method to getAttribute that will act in groovy as a property except for `size` and `attributes`
      */
     @Override
     public Object getProperty(String key) {
-        if ( "size".equals(key) )return getSize();
-        if ( "attributes".equals(key) )return getAttributes();
+        if ("size".equals(key)) return getSize();
+        if ("attributes".equals(key)) return getAttributes();
         return this.getAttribute(key);
     }
+
     /**
-     * Calls putAttribute if value defined and removeAttribute if value is null 
+     * Calls putAttribute if value defined and removeAttribute if value is null
      */
     @Override
     public void setProperty(String key, Object value) {
@@ -68,22 +70,25 @@ public class GroovySessionFile extends SessionFile implements GroovyObject {
             this.putAttribute(key, value.toString());
         }
     }
+
     /**
-     * GroovyObject support method 
+     * GroovyObject support method
      */
     @Override
     public MetaClass getMetaClass() {
         return this.metaClass;
     }
+
     /**
-     * GroovyObject support method 
+     * GroovyObject support method
      */
     @Override
     public void setMetaClass(MetaClass metaClass) {
         this.metaClass = metaClass == null ? InvokerHelper.getMetaClass(this.getClass()) : metaClass;
     }
+
     /**
-     * GroovyObject support method 
+     * GroovyObject support method
      */
     @Override
     public Object invokeMethod(String name, Object args) {
@@ -93,10 +98,12 @@ public class GroovySessionFile extends SessionFile implements GroovyObject {
 
     
     /*----------------------Extended Groovy methods >>------------------------*/
+
     /**
      * Write flowfile contents through writer with defined charset.
+     *
      * @param charset charset to use for writer
-     * @param c Closure that will receive writer as a parameter to write file content
+     * @param c       Closure that will receive writer as a parameter to write file content
      * @return reference to self
      */
     public GroovySessionFile write(String charset, Closure c) {
@@ -113,8 +120,9 @@ public class GroovySessionFile extends SessionFile implements GroovyObject {
 
     /**
      * Instantly writes into flowfile contents the charsequence (string).
+     *
      * @param charset charset to use for writer
-     * @param c content
+     * @param c       content
      * @return reference to self
      */
     public GroovySessionFile write(String charset, CharSequence c) {
@@ -131,8 +139,9 @@ public class GroovySessionFile extends SessionFile implements GroovyObject {
 
     /**
      * Write flowfile contents through writer with defined charset.
+     *
      * @param charset charset to use for writer
-     * @param c content defined as writable
+     * @param c       content defined as writable
      * @return reference to self
      */
     public GroovySessionFile write(String charset, Writable c) {
@@ -149,8 +158,9 @@ public class GroovySessionFile extends SessionFile implements GroovyObject {
 
     /**
      * Write or read+write flowfile contents through streams.
-     * @param c Closure that could receive one parameter OutputStream to perform write, 
-     * or two parameters InputStream and OutputStream to perform read and write.
+     *
+     * @param c Closure that could receive one parameter OutputStream to perform write,
+     *          or two parameters InputStream and OutputStream to perform read and write.
      * @return reference to self
      */
     public GroovySessionFile write(Closure c) {
@@ -169,25 +179,27 @@ public class GroovySessionFile extends SessionFile implements GroovyObject {
         }
         return this;
     }
-    
+
     /**
      * Append the existing content of the flow file.
+     *
      * @param c Closure that receives one parameter OutputStream to perform append.
      * @return reference to self
      */
-    public GroovySessionFile append(Closure c){
+    public GroovySessionFile append(Closure c) {
         this.append(new OutputStreamCallback() {
-                public void process(OutputStream out) throws IOException {
-                    c.call(out);
-                }
-            });
+            public void process(OutputStream out) throws IOException {
+                c.call(out);
+            }
+        });
         return this;
     }
-    
+
     /**
      * Append the existing content of the flow file through Writer with defined charset.
+     *
      * @param charset charset to use for writer
-     * @param c content to append.
+     * @param c       content to append.
      * @return reference to self
      */
     public GroovySessionFile append(String charset, Writable c) {
@@ -201,11 +213,12 @@ public class GroovySessionFile extends SessionFile implements GroovyObject {
         });
         return this;
     }
-    
+
     /**
      * Append the existing content of the flow file through Writer with defined charset.
+     *
      * @param charset charset to use for writer
-     * @param c Closure with one parameter - Writer.
+     * @param c       Closure with one parameter - Writer.
      * @return reference to self
      */
     public GroovySessionFile append(String charset, Closure c) {
@@ -222,8 +235,9 @@ public class GroovySessionFile extends SessionFile implements GroovyObject {
 
     /**
      * Append the existing content of the flow file through Writer with defined charset.
+     *
      * @param charset charset to use for writer
-     * @param c content to append.
+     * @param c       content to append.
      * @return reference to self
      */
     public GroovySessionFile append(String charset, CharSequence c) {
@@ -240,29 +254,31 @@ public class GroovySessionFile extends SessionFile implements GroovyObject {
 
     /**
      * Reads content of the flow file and closes input stream.
+     *
      * @param c Closure with one parameter InputStream.
      */
-    public void read(Closure c){
+    public void read(Closure c) {
         this.read(new InputStreamCallback() {
             public void process(InputStream in) throws IOException {
                 c.call(in);
             }
         });
     }
-    
+
     /**
      * Reads content of the flow file through Reader and closes the stream.
+     *
      * @param charset charset to use for Reader
-     * @param c Closure with one parameter Reader.
+     * @param c       Closure with one parameter Reader.
      */
-    public void read(String charset, Closure c){
+    public void read(String charset, Closure c) {
         this.read(new InputStreamCallback() {
             public void process(InputStream in) throws IOException {
-                InputStreamReader r = new InputStreamReader(in,charset);
+                InputStreamReader r = new InputStreamReader(in, charset);
                 c.call(r);
                 r.close();
             }
         });
     }
-    
+
 }

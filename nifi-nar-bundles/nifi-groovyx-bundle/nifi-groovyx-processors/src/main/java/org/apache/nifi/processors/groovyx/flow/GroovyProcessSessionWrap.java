@@ -34,9 +34,9 @@ public class GroovyProcessSessionWrap extends ProcessSessionWrap {
         super(s, toFailureOnError);
     }
 
-    /** 
+    /**
      * function returns wrapped flowfile with session for the simplified script access.
-     */    
+     */
     public SessionFile wrap(FlowFile f) {
         if (f == null) {
             return null;
@@ -54,7 +54,7 @@ public class GroovyProcessSessionWrap extends ProcessSessionWrap {
     public List<FlowFile> get(Closure filter) {
         return this.get(new FlowFileFilter() {
             public FlowFileFilterResult filter(FlowFile flowFile) {
-                Object res = filter.call( wrap(flowFile) );
+                Object res = filter.call(wrap(flowFile));
                 if (res == null) {
                     return FlowFileFilterResult.REJECT_AND_TERMINATE;
                 }

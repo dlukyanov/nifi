@@ -19,6 +19,7 @@ package org.apache.nifi.processors.groovyx.sql;
 import groovy.sql.Sql;
 import groovy.sql.InParameter;
 import groovy.lang.GString;
+
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.Types;
