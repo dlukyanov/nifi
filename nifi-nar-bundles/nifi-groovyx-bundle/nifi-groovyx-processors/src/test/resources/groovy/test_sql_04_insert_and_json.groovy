@@ -35,9 +35,9 @@ def rows = new JsonSlurper().parse( flowFile.read() )
 
 rows.each{row->
 	CTL.sql.executeInsert(row, "insert into mytable( ${row.keySet().join(',')} ) values( :${row.keySet().join(', :')} )")
-	outFiles.add(
-		 session.create(flowFile).write( "UTF-8", JsonOutput.toJson(row) )
-	)
+	def outFile = flowFile.clone(false) // session.create(flowFile)
+	outFile.write( "UTF-8", JsonOutput.toJson(row) )
+	outFiles.add(outFile)
 }
 
 //just easier to write asserts here

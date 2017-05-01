@@ -21,7 +21,7 @@ import groovy.sql.Sql
 //def flowFile = session.get()
 
 //write content of the flow file into database blob
-flowFile.read().withStream { rawIn->
+flowFile.read{ rawIn->
 	def parms = [
 		p_id   : flowFile.ID as Long,
 		p_data : Sql.BLOB( rawIn ),

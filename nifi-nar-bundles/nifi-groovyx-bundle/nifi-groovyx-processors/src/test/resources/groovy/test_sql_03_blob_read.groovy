@@ -15,8 +15,6 @@
  * limitations under the License.
  */
 
-import groovy.sql.Sql
-
 def flowFile = session.create()
 //read blob into flowFile content
 flowFile.write{out->

@@ -27,13 +27,14 @@ import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.io.StreamCallback;
+import org.apache.nifi.processor.io.InputStreamCallback;
 
 /**
  * The Flow file implementation that contains reference to the session.
  * So all commands become easier. Example:
  * <code>flowFile.putAttribute("AttrName", "AttrValue");</code>
  */
-public class SessionFile implements FlowFile {
+public abstract class SessionFile implements FlowFile {
 
     FlowFile flowFile;
     ProcessSessionWrap session;
@@ -49,23 +50,23 @@ public class SessionFile implements FlowFile {
         this.session = session;
     }
 
-    public FlowFile unwrap() {
-        return flowFile;
-    }
-
     public ProcessSessionWrap session() {
         return session;
     }
 
     public SessionFile clone(boolean cloneContent) {
         if (cloneContent) {
-            return new SessionFile(session, session.clone(flowFile));
+            return (SessionFile)session.clone(flowFile); //new SessionFile(session, session.clone(flowFile));
         }
-        return new SessionFile(session, session.create(flowFile));
+        return (SessionFile)session.create(flowFile); //session.wrap( session.create(flowFile) );
     }
 
     public InputStream read() {
         return session.read(flowFile);
+    }
+
+    public void read(InputStreamCallback c) {
+        session.read(flowFile, c);
     }
 
     public void write(StreamCallback c) {
@@ -74,6 +75,10 @@ public class SessionFile implements FlowFile {
 
     public void write(OutputStreamCallback c) {
         session.write(this, c);
+    }
+
+    public void append(OutputStreamCallback c) {
+        session.append(this, c);
     }
 
     public void putAttribute(String key, String value) {

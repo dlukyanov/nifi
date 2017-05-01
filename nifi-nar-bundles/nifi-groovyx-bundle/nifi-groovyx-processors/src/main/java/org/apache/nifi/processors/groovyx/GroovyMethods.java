@@ -54,133 +54,10 @@ class GroovyMethods {
         if (!initialized) {
             synchronized (GroovyMethods.class) {
                 if (!initialized) {
-                    initialized = metaSessionFile() && metaRelationship() && metaSession() && metaFlowFile();
+                    initialized = metaRelationship();
                 }
             }
         }
-    }
-
-    static HashSet fileProps = new HashSet();
-
-    static {
-        fileProps.add("attributes");
-        fileProps.add("size");
-    }
-
-    private static boolean metaSessionFile() {
-        GroovySystem.getMetaClassRegistry().setMetaClass(SessionFile.class, new DelegatingMetaClass(SessionFile.class) {
-            @Override public Object getProperty(Object object, String key) {
-                if (!fileProps.contains(key) && object instanceof SessionFile) {
-                    SessionFile f = (SessionFile) object;
-                    return f.getAttribute(key);
-                }
-                return super.getProperty(object, key);
-            }
-
-            @Override public void setProperty(Object object, String key, Object value) {
-                if (object instanceof SessionFile) {
-                    SessionFile f = (SessionFile) object;
-                    if (value == null) {
-                        f.removeAttribute(key);
-                    } else if (value instanceof String) {
-                        f.putAttribute(key, (String) value);
-                    } else {
-                        f.putAttribute(key, value.toString());
-                    }
-                    return;
-                }
-                super.setProperty(object, key, value);
-            }
-
-            @Override public Object invokeMethod(Object object, String methodName, Object[] args) {
-                if (object instanceof SessionFile) {
-                    if ("write".equals(methodName)) {
-                        if (args.length == 1 && args[0] instanceof Closure) {
-                            return this._write((SessionFile) object, (Closure) args[0]);
-                        } else if (args.length == 2) {
-                            if (args[0] instanceof String) {
-                                if (args[1] instanceof Closure) {
-                                    return this._write((SessionFile) object, (String) args[0], (Closure) args[1]);
-                                } else if (args[1] instanceof CharSequence) {
-                                    return this._write((SessionFile) object, (String) args[0], (CharSequence) args[1]);
-                                } else if (args[1] instanceof Writable) {
-                                    return this._write((SessionFile) object, (String) args[0], (Writable) args[1]);
-                                }
-                            }
-                        }
-                    }
-                }
-                return super.invokeMethod(object, methodName, args);
-            }
-
-            private SessionFile _write(SessionFile f, String charset, Closure c) {
-                f.write(new OutputStreamCallback() {
-                    public void process(OutputStream out) throws IOException {
-                        Writer w = new OutputStreamWriter(out, charset);
-                        c.call(w);
-                        w.flush();
-                        w.close();
-                    }
-                });
-                return f;
-            }
-
-            private SessionFile _write(SessionFile f, String charset, CharSequence c) {
-                f.write(new OutputStreamCallback() {
-                    public void process(OutputStream out) throws IOException {
-                        Writer w = new OutputStreamWriter(out, charset);
-                        w.append(c);
-                        w.flush();
-                        w.close();
-                    }
-                });
-                return f;
-            }
-
-            private SessionFile _write(SessionFile f, String charset, Writable c) {
-                f.write(new OutputStreamCallback() {
-                    public void process(OutputStream out) throws IOException {
-                        Writer w = new OutputStreamWriter(out, charset);
-                        c.writeTo(w);
-                        w.flush();
-                        w.close();
-                    }
-                });
-                return f;
-            }
-
-            private SessionFile _write(SessionFile f, Closure c) {
-                if (c.getMaximumNumberOfParameters() == 1) {
-                    f.write(new OutputStreamCallback() {
-                        public void process(OutputStream out) throws IOException {
-                            c.call(out);
-                        }
-                    });
-                } else {
-                    f.write(new StreamCallback() {
-                        public void process(InputStream in, OutputStream out) throws IOException {
-                            c.call(in, out);
-                        }
-                    });
-                }
-                return f;
-            }
-
-        });
-        return true;
-    }
-
-    private static boolean metaFlowFile() {
-        GroovySystem.getMetaClassRegistry().setMetaClass(FlowFile.class, new DelegatingMetaClass(FlowFile.class) {
-            @Override public Object getProperty(Object object, String key) {
-                if (!fileProps.contains(key) && object instanceof SessionFile) {
-                    FlowFile f = (FlowFile) object;
-                    return f.getAttribute(key);
-                }
-                return super.getProperty(object, key);
-            }
-        });
-        return true;
     }
 
     private static boolean metaRelationship() {
@@ -189,9 +66,9 @@ class GroovyMethods {
                 if (object instanceof Relationship) {
                     if ("leftShift".equals(methodName) && args.length == 1) {
                         if (args[0] instanceof SessionFile) {
-                            return this._leftShift((Relationship) object, (SessionFile) args[0]);
+                            return this.leftShift((Relationship) object, (SessionFile) args[0]);
                         } else if (args[0] instanceof Collection) {
-                            return this._leftShift((Relationship) object, (Collection) args[0]);
+                            return this.leftShift((Relationship) object, (Collection) args[0]);
                         }
                     }
                 }
@@ -199,23 +76,16 @@ class GroovyMethods {
             }
 
             /** to support: REL_SUCCESS << sessionFile */
-            private Relationship _leftShift(Relationship r, SessionFile f) {
+            private Relationship leftShift(Relationship r, SessionFile f) {
                 f.transfer(r);
                 return r;
             }
 
-            private Relationship _leftShift(Relationship r, Collection sfl) {
+            /** to support: REL_SUCCESS << sessionFileCollection */
+            private Relationship leftShift(Relationship r, Collection sfl) {
                 if (sfl != null && sfl.size() > 0) {
-                    List<FlowFile> ffl = new ArrayList();
-                    ProcessSessionWrap session = null;
-                    //convert sessionfile collection to flowfile list
-                    for (Iterator i = sfl.iterator(); i.hasNext(); ) {
-                        SessionFile f = (SessionFile) i.next();
-                        if (session == null) {
-                            session = f.session();
-                        }
-                        ffl.add(f.unwrap());
-                    }
+                    ProcessSessionWrap session = ((SessionFile)sfl.iterator().next()).session();
+                    List<FlowFile> ffl = session.unwrap(sfl);
                     //assume all files has the same session
                     session.transfer(ffl, r);
                 }
@@ -226,40 +96,4 @@ class GroovyMethods {
         return true;
     }
 
-    private static boolean metaSession() {
-        GroovySystem.getMetaClassRegistry().setMetaClass(ProcessSessionWrap.class, new DelegatingMetaClass(ProcessSessionWrap.class) {
-            @Override public Object invokeMethod(Object object, String methodName, Object[] args) {
-                if (object instanceof ProcessSessionWrap) {
-                    if ("get".equals(methodName) && args.length == 1 && args[0] instanceof Closure) {
-                        return this._get((ProcessSessionWrap) object, (Closure) args[0]);
-                    }
-                }
-                return super.invokeMethod(object, methodName, args);
-            }
-
-            /** makes closure to be used instead of FlowFileFilter.
-             * Closure could return true to ACCEPT_AND_CONTINUE or false to REJECT_AND_CONTINUE
-             * or any of FlowFileFilterResult enums
-             */
-            private List<FlowFile> _get(ProcessSessionWrap s, Closure filter) {
-                return s.get(new FlowFileFilter() {
-                    public FlowFileFilterResult filter(FlowFile flowFile) {
-                        Object res = filter.call(flowFile);
-                        if (res == null) {
-                            return FlowFileFilterResult.REJECT_AND_TERMINATE;
-                        }
-                        if (res instanceof Boolean) {
-                            return (((Boolean) res).booleanValue() ? FlowFileFilterResult.ACCEPT_AND_CONTINUE : FlowFileFilterResult.REJECT_AND_CONTINUE);
-                        }
-                        if (res instanceof FlowFileFilterResult) {
-                            return (FlowFileFilterResult) res;
-                        }
-                        return (org.codehaus.groovy.runtime.DefaultGroovyMethods.asBoolean(res) ? FlowFileFilterResult.ACCEPT_AND_CONTINUE : FlowFileFilterResult.REJECT_AND_CONTINUE);
-                    }
-                });
-            }
-
-        });
-        return true;
-    }
 }

@@ -260,9 +260,7 @@ public class ExecuteGroovyScriptTest {
         //runner.setProperty("ID", "0");
         runner.assertValid();
         
-        HashMap<String, String> attrs = new HashMap<String, String>();
-        attrs.put("ID","0");
-        runner.enqueue(TEST_CSV_DATA.getBytes(StandardCharsets.UTF_8), attrs);
+        runner.enqueue(TEST_CSV_DATA.getBytes(StandardCharsets.UTF_8), map("ID","0") );
         runner.run();
         
         runner.assertAllFlowFilesTransferred(proc.REL_SUCCESS.getName(), 1);
@@ -310,10 +308,74 @@ public class ExecuteGroovyScriptTest {
         //pass through to-fron json before compare
         resultFile.assertContentEquals( JsonOutput.toJson( new JsonSlurper().parseText(lines.get(1)) ) ,"UTF-8");
     }
-
-
-        
     
+    @Test
+    public void test_filter_01() throws Exception {
+        runner.setProperty(proc.SCRIPT_BODY, "def ff = session.get{it.FILTER=='3'}; if(!ff)return; REL_SUCCESS << ff;");
+        runner.setProperty(proc.REQUIRE_FLOW, "false");
+        //runner.setProperty(proc.FAIL_STRATEGY, "rollback");
+        
+        runner.assertValid();
+        
+        runner.enqueue("01".getBytes("UTF-8"), map("FILTER","1") );
+        runner.enqueue("31".getBytes("UTF-8"), map("FILTER","3") );
+        runner.enqueue("03".getBytes("UTF-8"), map("FILTER","2") );
+        runner.enqueue("32".getBytes("UTF-8"), map("FILTER","3") );
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(proc.REL_SUCCESS.getName(), 2);
+        final List<MockFlowFile> result = runner.getFlowFilesForRelationship(proc.REL_SUCCESS.getName());
+        
+        result.get(0).assertContentEquals( "31" ,"UTF-8");
+        result.get(1).assertContentEquals( "32" ,"UTF-8");
+    }
+
+    @Test
+    public void test_read_01() throws Exception {
+        runner.setProperty(proc.SCRIPT_BODY, "assert flowFile.read().getText('UTF-8')=='1234'; flowFile.remove();");
+        runner.setProperty(proc.REQUIRE_FLOW, "true");
+        
+        runner.assertValid();
+        
+        runner.enqueue("1234".getBytes("UTF-8") );
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(proc.REL_SUCCESS.getName(), 0);
+    }
+
+    @Test
+    public void test_read_02() throws Exception {
+        runner.setProperty(proc.SCRIPT_BODY, "assert flowFile.read('UTF-8').getText()=='1234'; flowFile.remove();");
+        runner.setProperty(proc.REQUIRE_FLOW, "true");
+        
+        runner.assertValid();
+        
+        runner.enqueue("1234".getBytes("UTF-8") );
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(proc.REL_SUCCESS.getName(), 0);
+    }
+
+    @Test
+    public void test_read_03() throws Exception {
+        runner.setProperty(proc.SCRIPT_BODY, "flowFile.read('UTF-8'){ assert it.getText()=='1234' }; flowFile.remove();");
+        runner.setProperty(proc.REQUIRE_FLOW, "true");
+        
+        runner.assertValid();
+        
+        runner.enqueue("1234".getBytes("UTF-8") );
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(proc.REL_SUCCESS.getName(), 0);
+    }
+
+    
+        
+    private HashMap<String,String> map(String key, String value){
+        HashMap<String, String> attrs = new HashMap<String, String>();
+        attrs.put(key,value);
+        return attrs;
+    }
     
     private static class DBCPServiceSimpleImpl extends AbstractControllerService implements DBCPService {
 

@@ -49,7 +49,7 @@ import org.apache.nifi.processors.groovyx.util.Throwables;
  * it will be good to create functionality with created file list and received file list in a standard session.
  * Those file lists will simplify error management.
  */
-public class ProcessSessionWrap implements ProcessSession {
+public abstract class ProcessSessionWrap implements ProcessSession {
 
     public static final String ERROR_STACKTRACE = "ERROR_STACKTRACE";
     public static final String ERROR_MESSAGE = "ERROR_MESSAGE";
@@ -79,15 +79,20 @@ public class ProcessSessionWrap implements ProcessSession {
         foe = toFailureOnError;
     }
 
-    public SessionFile wrap(FlowFile f) {
-        if (f == null) {
-            return null;
-        }
-        if (f instanceof SessionFile) {
-            return ((SessionFile) f);
-        }
-        return new SessionFile(this, f);
-    }
+    /** 
+     * function returns wrapped flowfile with session for the simplified script access.
+     * The sample implementation: <code> 
+		public SessionFile wrap(FlowFile f) {
+			if (f == null) {
+				return null;
+			}
+			if (f instanceof SessionFile) {
+				return ((SessionFile) f);
+			}
+			return new SessionFile(this, f);
+		}</code>
+     */    
+    public abstract SessionFile wrap(FlowFile f);
 
     public List<FlowFile> wrap(List ff) {
         if (ff == null) {

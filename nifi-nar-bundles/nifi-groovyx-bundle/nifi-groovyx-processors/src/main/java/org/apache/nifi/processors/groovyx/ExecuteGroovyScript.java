@@ -53,7 +53,7 @@ import org.codehaus.groovy.runtime.StackTraceUtils;
 import org.apache.nifi.processors.groovyx.sql.OSql;
 import org.apache.nifi.processors.groovyx.util.Files;
 import org.apache.nifi.processors.groovyx.util.Validators;
-import org.apache.nifi.processors.groovyx.flow.ProcessSessionWrap;
+import org.apache.nifi.processors.groovyx.flow.GroovyProcessSessionWrap;
 
 import groovy.lang.GroovyShell;
 import groovy.lang.Script;
@@ -361,7 +361,7 @@ public class ExecuteGroovyScript extends AbstractProcessor {
         boolean toFailureOnError = VALID_FAIL_STRATEGY[1].equals(context.getProperty(FAIL_STRATEGY).getValue());
         //create wrapped session to control list of newly created and getted files from this session.
         //so transfer original input to failure will be possible
-        ProcessSessionWrap session = new ProcessSessionWrap(_session, toFailureOnError);
+        GroovyProcessSessionWrap session = new GroovyProcessSessionWrap(_session, toFailureOnError);
 
         FlowFile flowFile = null;
 
