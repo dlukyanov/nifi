@@ -16,33 +16,17 @@
  */
 package org.apache.nifi.processors.groovyx;
 
-import groovy.lang.Closure;
 import groovy.lang.DelegatingMetaClass;
 import groovy.lang.GroovySystem;
-import groovy.lang.MetaClass;
-import groovy.lang.Writable;
 
 import org.apache.nifi.processors.groovyx.flow.ProcessSessionWrap;
 import org.apache.nifi.processors.groovyx.flow.SessionFile;
 
 import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.processor.FlowFileFilter;
-import org.apache.nifi.processor.FlowFileFilter.FlowFileFilterResult;
-import org.apache.nifi.processor.io.OutputStreamCallback;
-import org.apache.nifi.processor.io.StreamCallback;
 import org.apache.nifi.flowfile.FlowFile;
 
 import java.util.Collection;
 import java.util.List;
-import java.util.HashSet;
-import java.util.ArrayList;
-import java.util.Iterator;
-
-import java.io.OutputStream;
-import java.io.Writer;
-import java.io.OutputStreamWriter;
-import java.io.InputStream;
-import java.io.IOException;
 
 /**
  * Class to initialize additional groovy methods to work with SessionFile, Relationship, and Sessions easier
@@ -83,6 +67,7 @@ class GroovyMethods {
             }
 
             /** to support: REL_SUCCESS << sessionFileCollection */
+            @SuppressWarnings("unchecked")
             private Relationship leftShift(Relationship r, Collection sfl) {
                 if (sfl != null && sfl.size() > 0) {
                     ProcessSessionWrap session = ((SessionFile) sfl.iterator().next()).session();

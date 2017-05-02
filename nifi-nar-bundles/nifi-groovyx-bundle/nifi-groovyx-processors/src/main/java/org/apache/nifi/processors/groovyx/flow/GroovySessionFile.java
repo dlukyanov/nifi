@@ -38,12 +38,13 @@ import java.io.Writer;
 /**
  * SessionFile with groovy specific methods.
  */
+@SuppressWarnings("unused")
 public class GroovySessionFile extends SessionFile implements GroovyObject {
     private transient MetaClass metaClass;
 
     protected GroovySessionFile(ProcessSessionWrap session, FlowFile f) {
         super(session, f);
-        setMetaClass(null); //set defult metaclass
+        setMetaClass(null); //set default meta-class
     }
     /*----------------------GroovyObject methods >>---------------------------*/
 
@@ -100,7 +101,7 @@ public class GroovySessionFile extends SessionFile implements GroovyObject {
     /*----------------------Extended Groovy methods >>------------------------*/
 
     /**
-     * Write flowfile contents through writer with defined charset.
+     * Write flow file contents through writer with defined charset.
      *
      * @param charset charset to use for writer
      * @param c       Closure that will receive writer as a parameter to write file content
@@ -119,7 +120,7 @@ public class GroovySessionFile extends SessionFile implements GroovyObject {
     }
 
     /**
-     * Instantly writes into flowfile contents the charsequence (string).
+     * Instantly writes into flow file contents the char sequence (string).
      *
      * @param charset charset to use for writer
      * @param c       content
@@ -138,7 +139,7 @@ public class GroovySessionFile extends SessionFile implements GroovyObject {
     }
 
     /**
-     * Write flowfile contents through writer with defined charset.
+     * Write flow file contents through writer with defined charset.
      *
      * @param charset charset to use for writer
      * @param c       content defined as writable
@@ -157,7 +158,7 @@ public class GroovySessionFile extends SessionFile implements GroovyObject {
     }
 
     /**
-     * Write or read+write flowfile contents through streams.
+     * Write or read+write flow file contents through streams.
      *
      * @param c Closure that could receive one parameter OutputStream to perform write,
      *          or two parameters InputStream and OutputStream to perform read and write.

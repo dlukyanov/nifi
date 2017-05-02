@@ -35,10 +35,7 @@ import org.junit.runners.MethodSorters;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.IOException;
 
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.nio.charset.StandardCharsets;
 
 import java.util.List;
@@ -306,7 +303,7 @@ public class ExecuteGroovyScriptTest {
         final List<MockFlowFile> result = runner.getFlowFilesForRelationship(proc.REL_SUCCESS.getName());
         MockFlowFile resultFile = result.get(0);
         List<String> lines = ResourceGroovyMethods.readLines(new File(TEST_RESOURCE_LOCATION + "test_sql_04_insert_and_json.json"), "UTF-8");
-        //pass through to-fron json before compare
+        //pass through to&from json before compare
         resultFile.assertContentEquals(JsonOutput.toJson(new JsonSlurper().parseText(lines.get(1))), "UTF-8");
     }
 
@@ -372,7 +369,7 @@ public class ExecuteGroovyScriptTest {
 
 
     private HashMap<String, String> map(String key, String value) {
-        HashMap<String, String> attrs = new HashMap<String, String>();
+        HashMap<String, String> attrs = new HashMap<>();
         attrs.put(key, value);
         return attrs;
     }

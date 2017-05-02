@@ -27,7 +27,7 @@ import org.apache.nifi.components.Validator;
 
 public class Validators {
     /**
-     * differs fron standard file exists validator by supporting expression language values. TODO: maybe there is a bug in standard validator?
+     * differs from standard file exists validator by supporting expression language values. TODO: maybe there is a bug in standard validator?
      */
     public static Validator createFileExistsAndReadableValidator() {
         return (subject, input, context) -> {

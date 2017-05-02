@@ -19,15 +19,15 @@ package org.apache.nifi.processors.groovyx.flow;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.FlowFileFilter;
-import org.apache.nifi.processor.FlowFileFilter.FlowFileFilterResult;
 
 import groovy.lang.Closure;
 
 import java.util.List;
 
 /**
- * Wrapped session that produces groovy wrapped sessionfile.
+ * Wrapped session that produces groovy wrapped session-file.
  */
+@SuppressWarnings("unused")
 public class GroovyProcessSessionWrap extends ProcessSessionWrap {
 
     public GroovyProcessSessionWrap(ProcessSession s, boolean toFailureOnError) {
@@ -35,7 +35,7 @@ public class GroovyProcessSessionWrap extends ProcessSessionWrap {
     }
 
     /**
-     * function returns wrapped flowfile with session for the simplified script access.
+     * function returns wrapped flow file with session for the simplified script access.
      */
     public SessionFile wrap(FlowFile f) {
         if (f == null) {
@@ -48,18 +48,19 @@ public class GroovyProcessSessionWrap extends ProcessSessionWrap {
     }
 
     /**
-     * returns filtred list of input files. the closure receives each file from input queue and should return one of values:
+     * returns filtered list of input files. the closure receives each file from input queue and should return one of values:
      * true - accept and continue, false - reject and continue, null - reject and stop, or any FlowFileFilterResult value.
      */
     public List<FlowFile> get(Closure filter) {
         return this.get(new FlowFileFilter() {
+            @SuppressWarnings("ConstantConditions")
             public FlowFileFilterResult filter(FlowFile flowFile) {
                 Object res = filter.call(wrap(flowFile));
                 if (res == null) {
                     return FlowFileFilterResult.REJECT_AND_TERMINATE;
                 }
                 if (res instanceof Boolean) {
-                    return (((Boolean) res).booleanValue() ? FlowFileFilterResult.ACCEPT_AND_CONTINUE : FlowFileFilterResult.REJECT_AND_CONTINUE);
+                    return ((Boolean) res ? FlowFileFilterResult.ACCEPT_AND_CONTINUE : FlowFileFilterResult.REJECT_AND_CONTINUE);
                 }
                 if (res instanceof FlowFileFilterResult) {
                     return (FlowFileFilterResult) res;

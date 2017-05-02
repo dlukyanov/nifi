@@ -102,16 +102,6 @@ public class Throwables {
         }
 
         if (traceIndex == -1) {
-            for (int i = 0; i < trace.length; i++) {
-                String cl = trace[i].getClassName();
-                if (cl.startsWith("com.luxoft.ob10.")) {
-                    traceIndex = i;
-                    break;
-                }
-            }
-        }
-
-        if (traceIndex == -1) {
             traceIndex = 0;
         }
 
@@ -154,7 +144,7 @@ public class Throwables {
     }
 
     private static Throwable getRootException(Throwable e) {
-        Throwable t = null;
+        Throwable t;
 
         if (e instanceof InvocationTargetException) {
             t = ((InvocationTargetException) e).getTargetException();

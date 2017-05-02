@@ -57,20 +57,21 @@ import org.apache.nifi.processors.groovyx.flow.GroovyProcessSessionWrap;
 
 import groovy.lang.GroovyShell;
 import groovy.lang.Script;
-import groovy.sql.Sql;
 
 import org.apache.nifi.components.ValidationResult;
-import org.apache.nifi.components.Validator;
 import org.apache.nifi.components.ValidationContext;
 
 @EventDriven
-@Tags({"script", "groovy", "groovyx", "extended"})
+@Tags({"script", "groovy", "groovyx"})
 @CapabilityDescription(
-        "Experimental Extended Groovy script processor. The script is responsible for " + "handling the incoming flow file (transfer to SUCCESS or remove, e.g.) as well as any flow files created by "
-                + "the script. If the handling is incomplete or incorrect, the session will be rolled back.")
+        "Experimental Extended Groovy script processor. The script is responsible for " 
+        + "handling the incoming flow file (transfer to SUCCESS or remove, e.g.) as well as any flow files created by "
+        + "the script. If the handling is incomplete or incorrect, the session will be rolled back.")
 @SeeAlso({})
-@DynamicProperty(name = "A script engine property to update", value = "The value to set it to", supportsExpressionLanguage = true, description =
-        "Updates a script engine property specified by the Dynamic Property's key with the value "
+@DynamicProperty(name = "A script engine property to update", 
+        value = "The value to set it to", 
+        supportsExpressionLanguage = true, 
+        description = "Updates a script engine property specified by the Dynamic Property's key with the value "
                 + "specified by the Dynamic Property's value. Use `CTL.` to access any controller services.")
 public class ExecuteGroovyScript extends AbstractProcessor {
     public static final String GROOVY_CLASSPATH = "${groovy.classes.path}";
@@ -119,7 +120,7 @@ public class ExecuteGroovyScript extends AbstractProcessor {
 
     @Override
     protected void init(final ProcessorInitializationContext context) {
-        List<PropertyDescriptor> descriptors = new ArrayList<PropertyDescriptor>();
+        List<PropertyDescriptor> descriptors = new ArrayList<>();
         descriptors.add(SCRIPT_FILE);
         descriptors.add(SCRIPT_BODY);
         descriptors.add(REQUIRE_FLOW);
@@ -127,7 +128,7 @@ public class ExecuteGroovyScript extends AbstractProcessor {
         descriptors.add(ADD_CLASSPATH);
         this.descriptors = Collections.unmodifiableList(descriptors);
 
-        HashSet<Relationship> relationshipSet = new HashSet<Relationship>();
+        HashSet<Relationship> relationshipSet = new HashSet<>();
         relationshipSet.add(REL_SUCCESS);
         relationshipSet.add(REL_FAILURE);
         relationships = Collections.unmodifiableSet(relationshipSet);
@@ -173,7 +174,7 @@ public class ExecuteGroovyScript extends AbstractProcessor {
     /**
      * Let's do validation by script compile at this point.
      *
-     * @param validationContext provides a mechanism for obtaining externally managed values, such as property values and supplies convenience methods for operating on those values
+     * @param context provides a mechanism for obtaining externally managed values, such as property values and supplies convenience methods for operating on those values
      * @return Collection of ValidationResult objects that will be added to any other validation findings - may be null
      */
     protected Collection<ValidationResult> customValidate(final ValidationContext context) {
@@ -246,6 +247,7 @@ public class ExecuteGroovyScript extends AbstractProcessor {
     }
 
     // used in validation and processing
+    @SuppressWarnings("unchecked")
     Script getGroovyScript() throws Throwable {
         GroovyMethods.init();
         if (scriptBody != null && scriptFile != null) {
@@ -278,8 +280,8 @@ public class ExecuteGroovyScript extends AbstractProcessor {
             compiled = null;
         }
         if (compiled == null) {
-            String scriptName = null;
-            String scriptText = null;
+            String scriptName;
+            String scriptText;
             if (scriptFile != null) {
                 scriptName = scriptFile.getName();
                 scriptLastModified = scriptFile.lastModified();
@@ -292,7 +294,7 @@ public class ExecuteGroovyScript extends AbstractProcessor {
             compiled = (Class<Script>) script.getClass();
         }
         if (script == null) {
-            script = (Script) compiled.newInstance();
+            script = compiled.newInstance();
         }
         Thread.currentThread().setContextClassLoader(shell.getClassLoader());
         return script;
@@ -301,6 +303,7 @@ public class ExecuteGroovyScript extends AbstractProcessor {
     /**
      * init controller services
      */
+    @SuppressWarnings("unchecked")
     private void onInitCTL(HashMap CTL) throws SQLException {
         for (Map.Entry e : (Set<Map.Entry>) CTL.entrySet()) {
             if (e.getValue() instanceof DBCPService) {
@@ -361,7 +364,7 @@ public class ExecuteGroovyScript extends AbstractProcessor {
     public void onTrigger(final ProcessContext context, final ProcessSession _session) throws ProcessException {
         String requireFlow = context.getProperty(REQUIRE_FLOW).getValue();
         boolean toFailureOnError = VALID_FAIL_STRATEGY[1].equals(context.getProperty(FAIL_STRATEGY).getValue());
-        //create wrapped session to control list of newly created and getted files from this session.
+        //create wrapped session to control list of newly created and files got from this session.
         //so transfer original input to failure will be possible
         GroovyProcessSessionWrap session = new GroovyProcessSessionWrap(_session, toFailureOnError);
 

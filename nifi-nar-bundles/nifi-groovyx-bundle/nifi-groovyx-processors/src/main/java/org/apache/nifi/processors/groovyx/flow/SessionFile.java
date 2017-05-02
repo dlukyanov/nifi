@@ -22,7 +22,6 @@ import java.util.Set;
 import java.util.HashSet;
 import java.util.Collection;
 
-// import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.io.OutputStreamCallback;
@@ -34,6 +33,7 @@ import org.apache.nifi.processor.io.InputStreamCallback;
  * So all commands become easier. Example:
  * <code>flowFile.putAttribute("AttrName", "AttrValue");</code>
  */
+@SuppressWarnings("unused")
 public abstract class SessionFile implements FlowFile {
 
     FlowFile flowFile;
@@ -60,14 +60,14 @@ public abstract class SessionFile implements FlowFile {
     /**
      * Clone flowfile with or without content.
      *
-     * @param cloneContent
+     * @param cloneContent clone content or not. attributes cloned in any case.
      * @return new flow file
      */
     public SessionFile clone(boolean cloneContent) {
         if (cloneContent) {
-            return (SessionFile) session.clone(flowFile); //new SessionFile(session, session.clone(flowFile));
+            return session.clone(flowFile); //new SessionFile(session, session.clone(flowFile));
         }
-        return (SessionFile) session.create(flowFile); //session.wrap( session.create(flowFile) );
+        return session.create(flowFile); //session.wrap( session.create(flowFile) );
     }
 
     /**
@@ -129,7 +129,7 @@ public abstract class SessionFile implements FlowFile {
      *
      * @return reference to self
      */
-    public SessionFile putAllAttributes(Map m) {
+    public SessionFile putAllAttributes(Map<String,String> m) {
         session.putAllAttributes(this, m);
         return this;
     }
@@ -150,8 +150,8 @@ public abstract class SessionFile implements FlowFile {
      * @return reference to self
      */
     public SessionFile removeAllAttributes(Collection<String> keys) {
-        Set<String> keyset = (Set<String>) (keys instanceof Set ? keys : new HashSet(keys));
-        session.removeAllAttributes(this, keyset);
+        Set<String> keySet = (Set<String>) (keys instanceof Set ? keys : new HashSet<>(keys));
+        session.removeAllAttributes(this, keySet);
         return this;
     }
 
@@ -227,6 +227,7 @@ public abstract class SessionFile implements FlowFile {
         return flowFile.getAttributes();
     }
 
+    @SuppressWarnings("NullableProblems")
     public int compareTo(FlowFile other) {
         if (other instanceof SessionFile) {
             other = ((SessionFile) other).flowFile;
