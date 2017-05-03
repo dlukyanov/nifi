@@ -97,7 +97,6 @@ public class GroovySessionFile extends SessionFile implements GroovyObject {
     }
     /*----------------------<< GroovyObject methods---------------------------*/
 
-    
     /*----------------------Extended Groovy methods >>------------------------*/
 
     /**

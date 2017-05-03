@@ -64,13 +64,13 @@ import org.apache.nifi.components.ValidationContext;
 @EventDriven
 @Tags({"script", "groovy", "groovyx"})
 @CapabilityDescription(
-        "Experimental Extended Groovy script processor. The script is responsible for " 
+        "Experimental Extended Groovy script processor. The script is responsible for "
         + "handling the incoming flow file (transfer to SUCCESS or remove, e.g.) as well as any flow files created by "
         + "the script. If the handling is incomplete or incorrect, the session will be rolled back.")
 @SeeAlso({})
-@DynamicProperty(name = "A script engine property to update", 
-        value = "The value to set it to", 
-        supportsExpressionLanguage = true, 
+@DynamicProperty(name = "A script engine property to update",
+        value = "The value to set it to",
+        supportsExpressionLanguage = true,
         description = "Updates a script engine property specified by the Dynamic Property's key with the value "
                 + "specified by the Dynamic Property's value. Use `CTL.` to access any controller services.")
 public class ExecuteGroovyScript extends AbstractProcessor {
@@ -94,8 +94,10 @@ public class ExecuteGroovyScript extends AbstractProcessor {
             .required(true).expressionLanguageSupported(false).allowableValues(VALID_BOOLEANS).defaultValue("false").build();
 
     public static String[] VALID_FAIL_STRATEGY = {"rollback", "transfer to failure"};
-    public static final PropertyDescriptor FAIL_STRATEGY = new PropertyDescriptor.Builder().name("Failure strategy").description(
-            "If `transfer to failure` used then all flowFiles received from incoming queues in this session in case of exception will be transferred to `failure` relationship with additional attributes set: ERROR_MESSAGE and ERROR_STACKTRACE.")
+    public static final PropertyDescriptor FAIL_STRATEGY = new PropertyDescriptor.Builder()
+            .name("Failure strategy")
+            .description("If `transfer to failure` used then all flowFiles received from incoming queues in this session "
+                    +"in case of exception will be transferred to `failure` relationship with additional attributes set: ERROR_MESSAGE and ERROR_STACKTRACE.")
             .required(true).expressionLanguageSupported(false).allowableValues(VALID_FAIL_STRATEGY).defaultValue(VALID_FAIL_STRATEGY[0]).build();
 
     public static final PropertyDescriptor ADD_CLASSPATH = new PropertyDescriptor.Builder().name("Additional classpath").required(false)
@@ -116,7 +118,7 @@ public class ExecuteGroovyScript extends AbstractProcessor {
     //compiled script
     volatile GroovyShell shell = null; //new GroovyShell();
     volatile Class<Script> compiled = null;  //compiled script
-    volatile long scriptLastModified = 0;  //last scriptFile modification to check if recompile required 
+    volatile long scriptLastModified = 0;  //last scriptFile modification to check if recompile required
 
     @Override
     protected void init(final ProcessorInitializationContext context) {
